@@ -1,0 +1,10 @@
+# File: Configuration for the onchain analyst agent example.
+#
+# Purpose: Defines model and RPC settings for the onchain analyst.
+# How: Loaded by agent.py using lola.utils.config.
+# Why: Simplifies EVM configuration for demo, per Developer Sovereignty.
+# Full Path: lola-os/examples/onchain_analyst/config.yaml
+
+model: openai/gpt-4o
+rpc_url: https://mainnet.infura.io/v3/your-infura-key
+api_key: your-api-key-here

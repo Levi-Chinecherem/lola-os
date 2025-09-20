@@ -1,0 +1,9 @@
+# File: Configuration for the research agent example.
+#
+# Purpose: Defines model and API settings for the research agent.
+# How: Loaded by agent.py using lola.utils.config.
+# Why: Simplifies configuration for demo, per Developer Sovereignty.
+# Full Path: lola-os/examples/research_agent/config.yaml
+
+model: openai/gpt-4o
+api_key: your-api-key-here
