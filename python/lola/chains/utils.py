@@ -1,23 +1,43 @@
 # Standard imports
 import typing as tp
 
-"""
-File: Defines ChainUtils for LOLA OS TMVP 1 Phase 2.
+# Local
+from .connection import ChainConnection
 
-Purpose: Provides helper utilities for EVM interactions.
-How: Implements stubbed gas estimation and transaction helpers.
-Why: Simplifies chain operations, per EVM-Native tenet.
+"""
+File: Defines the utils module for LOLA OS TMVP 1 Phase 2.
+
+Purpose: Provides helper functions for EVM operations.
+How: Implements gas estimation and transaction building.
+Why: Simplifies EVM interactions, per EVM-Native tenet.
 Full Path: lola-os/python/lola/chains/utils.py
+Future Optimization: Migrate to Rust for efficient utils (post-TMVP 1).
 """
-class ChainUtils:
-    """ChainUtils: Helper functions for EVM operations. Does NOT handle writes—TMVP 2."""
 
-    @staticmethod
-    def estimate_gas() -> dict:
+class Utils:
+    """Utils: EVM helper functions."""
+
+    def __init__(self, connection: ChainConnection):
         """
-        Estimate gas for a transaction (stubbed).
+        Initialize with connection.
+
+        Args:
+            connection: ChainConnection instance.
+        """
+        self.connection = connection
+
+    async def estimate_gas(self, tx: tp.Dict[str, tp.Any]) -> int:
+        """
+        Estimates gas for a transaction.
+
+        Args:
+            tx: Transaction dict.
 
         Returns:
-            dict: Gas estimation (stubbed for now).
+            Estimated gas.
+
+        Does Not: Execute transaction—read-only.
         """
-        return {"gas": "stubbed_gas_estimate"}
+        return self.connection.w3.eth.estimate_gas(tx)
+
+__all__ = ["Utils"]

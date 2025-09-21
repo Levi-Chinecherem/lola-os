@@ -1,9 +1,11 @@
-# File: Configuration for the research agent example.
-#
-# Purpose: Defines model and API settings for the research agent.
-# How: Loaded by agent.py using lola.utils.config.
-# Why: Simplifies configuration for demo, per Developer Sovereignty.
-# Full Path: lola-os/examples/research_agent/config.yaml
+# """
+# File: Configuration for research agent example in LOLA OS TMVP 1 Phase 4.
 
-model: openai/gpt-4o
-api_key: your-api-key-here
+# Purpose: Provides configuration for the research agent.
+# How: Defines YAML structure for API keys and settings.
+# Why: Simplifies setup for example execution, per Developer Sovereignty.
+# Full Path: lola-os/examples/research_agent/config.yaml
+# """
+
+pinecone_api_key: "your-pinecone-api-key"
+openai_api_key: "your-openai-api-key"

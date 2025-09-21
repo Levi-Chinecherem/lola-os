@@ -2,37 +2,42 @@
 import typing as tp
 
 # Local
-from lola.tools.human_input import HumanInputTool
 from lola.core.state import State
+from lola.tools.human_input import HumanInputTool
 
 """
-File: Defines the InteractiveCorrections for LOLA OS TMVP 1 Phase 2.
+File: Defines the InteractiveCorrections class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Allows humans to correct agent mistakes.
-How: Uses HumanInputTool to update State.
-Why: Enables error correction, per Choice by Design.
+Purpose: Allows human corrections in agent workflows.
+How: Prompts for corrections and updates state.
+Why: Enables error recovery, per Choice by Design tenet.
 Full Path: lola-os/python/lola/hitl/corrections.py
+Future Optimization: Migrate to Rust for interactive UI (post-TMVP 1).
 """
+
 class InteractiveCorrections:
-    """InteractiveCorrections: Handles human corrections. Does NOT persist state—use StateManager."""
+    """InteractiveCorrections: Handles human corrections. Does NOT persist corrections—use StateManager."""
 
-    def __init__(self, human_input_tool: HumanInputTool):
-        """
-        Initialize with a human input tool.
+    def __init__(self):
+        """Initialize the corrections handler."""
+        self.input_tool = HumanInputTool()
 
-        Args:
-            human_input_tool: HumanInputTool instance.
+    async def correct(self, state: State, error: str) -> State:
         """
-        self.human_input_tool = human_input_tool
-
-    async def correct(self, state: State, error: str) -> dict:
-        """
-        Correct an agent mistake.
+        Prompts for correction on error.
 
         Args:
             state: Current state.
             error: Error description.
+
         Returns:
-            dict: Correction result (stubbed for now).
+            Updated state with correction.
+
+        Does Not: Handle automatic corrections—use meta_cognition.py.
         """
-        return self.human_input_tool.execute(f"Correct error: {error}")
+        prompt = f"Correct error: {error}\nCurrent output: {state.output}"
+        correction = await self.input_tool.execute(prompt)
+        state.update(output=correction)
+        return state
+
+__all__ = ["InteractiveCorrections"]

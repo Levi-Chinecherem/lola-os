@@ -1,53 +1,62 @@
 # Standard imports
-from typing import List
 import asyncio
-
-# Third-party imports
-from pydantic import BaseModel
+from typing import List
 
 # Local imports
 from lola.agents.react import ReActAgent
 from lola.tools.web_search import WebSearchTool
-from lola.tools.human_input import HumanInputTool
+from lola.rag.multimodal import MultiModalRetriever
+from lola.utils.config import config, load_config
 from lola.utils.logging import logger
-from lola.utils.config import load_config
+from lola.core.state import State
 
 """
 File: Research agent example for LOLA OS TMVP 1 Phase 4.
 
-Purpose: Demonstrates a ReAct-based agent for web research tasks.
-How: Uses WebSearchTool and HumanInputTool with ReActAgent.
-Why: Showcases agent capabilities for developer onboarding, per Developer Sovereignty.
+Purpose: Demonstrates a ReAct agent performing web searches and RAG queries.
+How: Uses ReActAgent with WebSearchTool and MultiModalRetriever for real queries.
+Why: Showcases developer-friendly agent creation, per Developer Sovereignty.
 Full Path: lola-os/examples/research_agent/agent.py
 """
 
-class ResearchAgent(ReActAgent):
-    """A ReAct-based agent for web research tasks."""
+async def main(query: str) -> str:
+    """
+    Run a research agent to answer a query using web search and RAG.
 
-    def __init__(self, tools: List = None, model: str = "openai/gpt-4o"):
-        """
-        Initialize the research agent.
+    Args:
+        query: Input query for research.
 
-        Args:
-            tools: List of tools (defaults to WebSearchTool, HumanInputTool).
-            model: LLM model name (defaults to openai/gpt-4o).
-        """
-        config = load_config("examples/research_agent/config.yaml")
-        model = config.get("model", model)
-        tools = tools or [WebSearchTool(), HumanInputTool()]
-        super().__init__(tools=tools, model=model)
-        logger.info(f"Initialized ResearchAgent with model {model}")
+    Returns:
+        Final answer as a string.
 
-async def main(query: str):
-    """Run the research agent with a query."""
-    agent = ResearchAgent()
-    result = await agent.run(query)
-    logger.info(f"Research result: {result.data}")
-    return result
+    Does not:
+        Modify external systems; only performs read operations.
+    """
+    # Load configuration
+    config_path = "config.yaml"
+    load_config(config_path)
+
+    # Initialize tools
+    web_tool = WebSearchTool()
+    retriever = MultiModalRetriever(pinecone_api_key=config.get("pinecone_api_key"))
+    
+    # Initialize agent with tools
+    agent = ReActAgent(
+        model=config.get("openai_api_key"),
+        tools=[web_tool, retriever]
+    )
+    
+    # Run agent
+    logger.info(f"Processing query: {query}")
+    state = await agent.run(query)
+    
+    return state.output
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python agent.py <query>")
+        logger.error("Please provide a query as an argument.")
         sys.exit(1)
-    asyncio.run(main(sys.argv[1]))
+    
+    result = asyncio.run(main(sys.argv[1]))
+    logger.info(f"Research result: {result}")

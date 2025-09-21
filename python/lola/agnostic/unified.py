@@ -2,42 +2,39 @@
 import typing as tp
 
 # Third-party
-import litellm
+from litellm import completion
 
 """
-File: Defines the UnifiedModelManager for LOLA OS TMVP 1.
+File: Defines the UnifiedModelManager class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a single interface for LLM calls across providers.
-How: Wraps litellm's completion API for model-agnostic access.
-Why: Simplifies model switching without code changes, per Agnostic Adapter Pattern.
+Purpose: Provides a unified interface for LLM calls across providers.
+How: Wraps litellm for real model switching and calls.
+Why: Ensures LLM agnosticism, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/agnostic/unified.py
+Future Optimization: Migrate to Rust for fast LLM routing (post-TMVP 1).
 """
 
 class UnifiedModelManager:
-    """Unified interface for LLM calls using litellm."""
+    """UnifiedModelManager: Manages LLM calls. Does NOT persist responses—use StateManager."""
 
-    def __init__(self, default_model: str = "openai/gpt-4o"):
+    async def call(self, prompt: str, model: str = "openai/gpt-4o") -> str:
         """
-        Initialize with a default LLM model.
+        Calls LLM with prompt.
 
         Args:
-            default_model: Default model string for litellm (e.g., "openai/gpt-4o").
-        """
-        self.default_model = default_model
+            prompt: Input prompt.
+            model: LLM model string.
 
-    async def complete(self, prompt: str, model: tp.Optional[str] = None) -> str:
-        """
-        Execute an LLM completion.
-
-        Args:
-            prompt: Input prompt string.
-            model: Optional model string to override default.
         Returns:
-            str: LLM response.
+            Response string.
+
+        Does Not: Handle cost—use cost.py.
         """
-        model = model or self.default_model
-        response = await litellm.acompletion(
+        response = completion(
             model=model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000
         )
         return response.choices[0].message.content
+
+__all__ = ["UnifiedModelManager"]

@@ -1,51 +1,39 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
-from lola.tools.base import BaseTool
 
 """
-File: Defines the SyntheticDataAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the SyntheticDataAgent class for LOLA OS TMVP 1 Phase 2.
 
 Purpose: Implements an agent for generating synthetic data.
-How: Uses StateGraph to create synthetic datasets via LLM.
-Why: Enables data generation for training/testing, per Developer Sovereignty.
+How: Uses LLM to create labeled data for training.
+Why: Supports model fine-tuning, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/agents/synthetic_data.py
+Future Optimization: Migrate to Rust for high-volume data generation (post-TMVP 1).
 """
-class SyntheticDataAgent(BaseAgent):
+
+class SyntheticDataAgent(BaseTemplateAgent):
     """SyntheticDataAgent: Generates synthetic data. Does NOT persist state—use StateManager."""
-
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
-        """
-        Initialize with tools and LLM model.
-
-        Args:
-            tools: List of BaseTool instances.
-            model: LLM model string for litellm.
-        """
-        super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="generate", type="llm", function=self._generate, description="Data generation step"))
 
     async def run(self, query: str) -> State:
         """
-        Run a synthetic data generation cycle on the query.
+        Generate synthetic data based on query.
 
         Args:
-            query: User input string.
+            query: Description of data to generate (e.g., "10 images of cats").
+
         Returns:
-            State: Updated state with generated data.
-        Does Not: Persist state—caller must use StateManager.
+            State: State with generated data.
+        Does Not: Store data—use file_io.py.
         """
         self.state.update({"query": query})
-        return await self.graph.execute()
+        # Inline: Generate data with LLM
+        generation_prompt = f"Generate synthetic data for: {query}"
+        data = await self._call_llm(generation_prompt)
+        self.state.update({"output": data})
+        return self.state
 
-    async def _generate(self, state: State) -> dict:
-        """Generate synthetic data using LLM."""
-        prompt = f"Generate synthetic data for: {state.data.get('query')}"
-        response = await self._call_llm(prompt)
-        return {"data": response}
+__all__ = ["SyntheticDataAgent"]

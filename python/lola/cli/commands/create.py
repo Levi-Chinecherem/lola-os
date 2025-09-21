@@ -1,43 +1,57 @@
 # Standard imports
 import click
-import os
-import shutil
 from pathlib import Path
+import shutil
+import os
 
-# Local
+# Local imports
 from lola.utils.logging import logger
 
 """
-File: CLI command to scaffold a new LOLA OS project.
+File: CLI command to scaffold new agent projects for LOLA OS TMVP 1 Phase 3.
 
-Purpose: Creates a new project with agent templates and configuration.
-How: Copies a template directory and adds __init__.py to the project root.
+Purpose: Creates a project directory with template files for agents and configs.
+How: Uses click to define the create command, copies template files.
 Why: Simplifies onboarding for developers, per Developer Sovereignty.
 Full Path: lola-os/python/lola/cli/commands/create.py
 """
 
 @click.command()
-@click.argument("project_name")
-def create(project_name: str) -> None:
+@click.argument('project_name')
+@click.option('--template', type=click.Choice(['react', 'onchain']), default='react', help='Agent template type.')
+def create(project_name: str, template: str) -> None:
     """
-    Create a new LOLA OS project with the given name.
+    Create a new LOLA OS agent project.
 
     Args:
         project_name: Name of the project directory.
-    Does Not: Install dependencies—use `poetry install` after creation.
+        template: Template type (react or onchain).
+
+    Does not:
+        Execute or deploy the project; only scaffolds files.
     """
-    project_path = Path(project_name)
-    template_path = Path(__file__).parent.parent / "templates" / "basic_agent"
-
-    if project_path.exists():
-        logger.error(f"Directory {project_path} already exists.")
+    project_dir = Path(project_name)
+    if project_dir.exists():
+        logger.error(f"Project directory {project_dir} already exists.")
         raise click.Abort()
 
-    try:
-        shutil.copytree(template_path, project_path)
-        # Create __init__.py to make the project a valid Python module
-        (project_path / "__init__.py").touch()
-        logger.info(f"Created LOLA OS project at {project_path}")
-    except Exception as e:
-        logger.error(f"Failed to create project: {e}")
+    # Create project directory structure
+    project_dir.mkdir()
+    (project_dir / "agents").mkdir()
+    (project_dir / "config").mkdir()
+
+    # Copy template files based on type
+    template_dir = Path(__file__).parent.parent / "templates" / template
+    if not template_dir.exists():
+        logger.error(f"Template {template} not found.")
         raise click.Abort()
+
+    # Copy agent and config files
+    shutil.copytree(template_dir / "agents", project_dir / "agents", dirs_exist_ok=True)
+    shutil.copy(template_dir / "config.yaml", project_dir / "config/config.yaml")
+
+    # Create README
+    with (project_dir / "README.md").open("w") as f:
+        f.write(f"# {project_name}\n\nLOLA OS {template} agent project.\n")
+
+    logger.info(f"Created project {project_name} with {template} template.")

@@ -5,32 +5,40 @@ import typing as tp
 from lola.agnostic.unified import UnifiedModelManager
 
 """
-File: Defines the PromptCompressor for LOLA OS TMVP 1 Phase 2.
+File: Defines the PromptCompressor class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Compresses prompts for efficient LLM calls.
-How: Uses stubbed compression logic (to be extended with NLP).
-Why: Reduces LLM costs, per Radical Reliability.
+Purpose: Compresses prompts to reduce token usage.
+How: Uses LLM to summarize prompts.
+Why: Optimizes LLM costs and latency, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/perf_opt/prompt_compressor.py
+Future Optimization: Migrate to Rust for fast compression (post-TMVP 1).
 """
+
 class PromptCompressor:
-    """PromptCompressor: Compresses prompts. Does NOT handle LLM calls—use UnifiedModelManager."""
+    """PromptCompressor: Compresses prompts. Does NOT persist data—use StateManager."""
 
     def __init__(self, model_manager: UnifiedModelManager):
         """
-        Initialize with a model manager.
+        Initialize with model manager.
 
         Args:
-            model_manager: UnifiedModelManager for LLM calls.
+            model_manager: UnifiedModelManager instance.
         """
         self.model_manager = model_manager
 
     async def compress(self, prompt: str) -> str:
         """
-        Compress a prompt.
+        Compresses a prompt.
 
         Args:
-            prompt: Prompt string.
+            prompt: Input prompt.
+
         Returns:
-            str: Compressed prompt (stubbed for now).
+            Compressed prompt.
+
+        Does Not: Handle complex NLP—expand in TMVP 2.
         """
-        return f"Stubbed compressed prompt: {prompt}"
+        compress_prompt = f"Summarize this prompt while preserving key information: {prompt}"
+        return await self.model_manager.call(compress_prompt)
+
+__all__ = ["PromptCompressor"]

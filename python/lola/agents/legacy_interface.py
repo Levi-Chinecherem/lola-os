@@ -1,51 +1,43 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
-from lola.tools.base import BaseTool
 
 """
-File: Defines the LegacyInterfaceAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the LegacyInterfaceAgent class for LOLA OS TMVP 1 Phase 2.
 
 Purpose: Implements an agent for interfacing with legacy systems.
-How: Uses StateGraph to translate queries for legacy APIs via LLM.
-Why: Enables integration with existing systems, per Developer Sovereignty.
+How: Uses LLM to generate API calls for legacy systems.
+Why: Enables integration with old systems, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/agents/legacy_interface.py
+Future Optimization: Migrate to Rust for secure legacy access (post-TMVP 1).
 """
-class LegacyInterfaceAgent(BaseAgent):
+
+class LegacyInterfaceAgent(BaseTemplateAgent):
     """LegacyInterfaceAgent: Interfaces with legacy systems. Does NOT persist state—use StateManager."""
-
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
-        """
-        Initialize with tools and LLM model.
-
-        Args:
-            tools: List of BaseTool instances.
-            model: LLM model string for litellm.
-        """
-        super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="interface", type="llm", function=self._interface, description="Legacy interface step"))
 
     async def run(self, query: str) -> State:
         """
-        Run a legacy interface cycle on the query.
+        Interface with legacy system based on query.
 
         Args:
-            query: User input string.
+            query: Input string for legacy interaction.
+
         Returns:
-            State: Updated state with interface results.
-        Does Not: Persist state—caller must use StateManager.
+            State: State with legacy response.
+        Does Not: Handle authentication—use key_manager.py.
         """
         self.state.update({"query": query})
-        return await self.graph.execute()
+        # Inline: Generate legacy API call with LLM
+        api_prompt = f"Generate legacy API call for: {query}"
+        api_call = await self._call_llm(api_prompt)
+        # Inline: Execute API call (using api_client.py)
+        tool_name = "api_client"
+        params = {"url": "legacy-api.com", "method": "GET", "data": api_call}
+        result = await self.execute_tool(tool_name, params)
+        self.state.update({"output": result})
+        return self.state
 
-    async def _interface(self, state: State) -> dict:
-        """Interface with legacy systems using LLM."""
-        prompt = f"Translate query for legacy system: {state.data.get('query')}"
-        response = await self._call_llm(prompt)
-        return {"interface": response}
+__all__ = ["LegacyInterfaceAgent"]

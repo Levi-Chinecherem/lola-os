@@ -1,0 +1,42 @@
+# Quickstart Guide
+
+This guide helps you get started with **LOLA OS**, an open-source Python framework for building EVM-native AI agents.
+
+## Installation
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Levi-Chinecherem/lola-os
+   cd lola-os
+   ```
+
+2. **Set Up PYTHONPATH**:
+   ```bash
+   export PYTHONPATH=$(pwd)/python:$PYTHONPATH
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   poetry install
+   ```
+
+4. **Run Tests**:
+   ```bash
+   poetry run pytest tests/ -v
+   ```
+
+## Running an Example Agent
+
+Try the [Research Agent](examples/research_agent/README.md):
+```bash
+cd examples/research_agent
+poetry install
+poetry run python agent.py "Research AI trends"
+```
+
+Or the [Onchain Analyst](examples/onchain_analyst/README.md):
+```bash
+cd examples/onchain_analyst
+poetry install
+poetry run python agent.py "Get the floor price of Bored Ape Yacht Club"
+```

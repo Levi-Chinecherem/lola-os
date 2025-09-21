@@ -1,24 +1,46 @@
 # Standard imports
 import typing as tp
 
-"""
-File: Defines the DynamicDataConnector for LOLA OS TMVP 1 Phase 2.
+# Third-party
+from llama_index.core import SimpleDirectoryReader
 
-Purpose: Builds connectors for syncing data to RAG systems.
-How: Uses stubbed connector logic (to be extended with DB integrations).
-Why: Enables dynamic data sources, per Developer Sovereignty.
+# Local
+from lola.rag.multimodal import MultiModalRetriever
+
+"""
+File: Defines the DynamicDataConnector class for LOLA OS TMVP 1 Phase 2.
+
+Purpose: Syncs data from sources to RAG.
+How: Uses LlamaIndex to load and index data.
+Why: Enables dynamic knowledge bases, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/rag/connector.py
+Future Optimization: Migrate to Rust for high-throughput syncing (post-TMVP 1).
 """
-class DynamicDataConnector:
-    """DynamicDataConnector: Syncs data for RAG. Does NOT handle retrieval—use MultiModalRetriever."""
 
-    def sync(self, source: str) -> dict:
+class DynamicDataConnector:
+    """DynamicDataConnector: Syncs data to RAG. Does NOT persist data—use StateManager."""
+
+    def __init__(self, retriever: MultiModalRetriever):
         """
-        Sync data from a source.
+        Initialize with retriever.
 
         Args:
-            source: Data source identifier.
-        Returns:
-            dict: Sync results (stubbed for now).
+            retriever: MultiModalRetriever instance.
         """
-        return {"results": f"Stubbed data sync for: {source}"}
+        self.retriever = retriever
+
+    async def sync(self, source: str) -> None:
+        """
+        Syncs data from source.
+
+        Args:
+            source: Data source (e.g., file path).
+
+        Does Not: Handle web sources—expand in TMVP 2.
+        """
+        if source.endswith('.txt') or source.endswith('.pdf'):
+            reader = SimpleDirectoryReader(input_files=[source])
+            data = reader.load_data()
+            await self.retriever.index_data(data)
+
+__all__ = ["DynamicDataConnector"]

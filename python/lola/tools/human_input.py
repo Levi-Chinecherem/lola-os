@@ -5,27 +5,34 @@ import typing as tp
 from .base import BaseTool
 
 """
-File: Defines the HumanInputTool for LOLA OS TMVP 1 Phase 2.
+File: Defines the HumanInputTool class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a tool for pausing and requesting human input.
-How: Executes a stubbed input request (to be extended with CLI/GUI).
-Why: Enables human-in-the-loop workflows, per Choice by Design.
+Purpose: Enables agents to pause for human input.
+How: Uses input() for real user interaction.
+Why: Supports human-in-the-loop workflows, per Choice by Design tenet.
 Full Path: lola-os/python/lola/tools/human_input.py
+Future Optimization: Migrate to Rust for UI-based input (post-TMVP 1).
 """
+
 class HumanInputTool(BaseTool):
-    """HumanInputTool: Requests human input. Does NOT persist input—use StateManager."""
+    """HumanInputTool: Pauses for human input. Does NOT persist input—use StateManager."""
 
     name: str = "human_input"
 
-    def execute(self, *args, **kwargs) -> dict:
+    async def execute(self, input_data: tp.Any) -> tp.Any:
         """
-        Request human input.
+        Prompt for human input.
 
         Args:
-            *args: Prompt string as first positional argument.
-            **kwargs: Optional parameters (e.g., timeout).
+            input_data: Prompt string for the user.
+
         Returns:
-            dict: Human input (stubbed for now).
+            User input string.
+
+        Does Not: Handle timeouts—use hitl/escalation.py.
         """
-        prompt = args[0] if args else kwargs.get("prompt", "")
-        return {"input": f"Stubbed human input for: {prompt}"}
+        if not isinstance(input_data, str):
+            raise ValueError("Input data must be a prompt string.")
+        return input(input_data + ": ")
+
+__all__ = ["HumanInputTool"]

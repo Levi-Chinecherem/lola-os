@@ -1,37 +1,70 @@
 # Standard imports
 import typing as tp
 
-# Local
-from lola.agnostic.unified import UnifiedModelManager
+# Third-party
+from pinecone import Pinecone, ServerlessSpec
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+from llama_index.core import StorageContext
 
 """
-File: Defines the MultiModalRetriever for LOLA OS TMVP 1 Phase 2.
+File: Defines the MultiModalRetriever class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a unified interface for text/image/video retrieval.
-How: Uses a stubbed retrieval operation (to be extended with vector DBs).
-Why: Enables multimodal data queries, per Developer Sovereignty.
+Purpose: Provides multimodal RAG retrieval with Pinecone and LlamaIndex.
+How: Indexes documents and queries Pinecone for matches.
+Why: Enhances agent queries with real vector retrieval, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/rag/multimodal.py
+Future Optimization: Migrate to Rust for high-throughput retrieval (post-TMVP 1).
 """
-class MultiModalRetriever:
-    """MultiModalRetriever: Retrieves multimodal data. Does NOT handle indexing—use Connector."""
 
-    def __init__(self, model_manager: UnifiedModelManager):
+class MultiModalRetriever:
+    """MultiModalRetriever: Handles multimodal RAG retrieval. Does NOT persist data—use StateManager."""
+
+    def __init__(self, pinecone_api_key: str, index_name: str = "lola-rag"):
         """
-        Initialize with a model manager.
+        Initialize with Pinecone API key and index name.
 
         Args:
-            model_manager: UnifiedModelManager for LLM calls.
+            pinecone_api_key: Pinecone API key.
+            index_name: Pinecone index name.
         """
-        self.model_manager = model_manager
+        self.pc = Pinecone(api_key=pinecone_api_key)
+        if index_name not in self.pc.list_indexes().names():
+            self.pc.create_index(name=index_name, dimension=1536, metric='cosine', spec=ServerlessSpec(cloud='aws', region='us-west-2'))
+        self.vector_store = PineconeVectorStore(pinecone_index=self.pc.Index(index_name))
+        self.storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
 
-    async def retrieve(self, query: str, modality: str = "text") -> dict:
+    async def index_data(self, documents: tp.List[str]) -> None:
         """
-        Retrieve multimodal data.
+        Indexes data for retrieval.
+
+        Args:
+            documents: List of document strings to index.
+
+        Does Not: Handle multimodal data—expand in TMVP 2.
+        """
+        reader = SimpleDirectoryReader(input_files=documents)
+        data = reader.load_data()
+        index = VectorStoreIndex.from_documents(data, storage_context=self.storage_context)
+        # Inline: Refresh for immediate use
+        index.refresh()
+
+    async def retrieve(self, query: str, top_k: int = 5) -> tp.List[dict]:
+        """
+        Retrieves relevant data.
 
         Args:
             query: Query string.
-            modality: Data type (text/image/video).
+            top_k: Number of results.
+
         Returns:
-            dict: Retrieval results (stubbed for now).
+            List of matching documents.
+
+        Does Not: Generate embeddings—handled by LlamaIndex.
         """
-        return {"results": f"Stubbed multimodal retrieval for: {query} ({modality})"}
+        index = VectorStoreIndex([], storage_context=self.storage_context)
+        retriever = index.as_retriever(similarity_top_k=top_k)
+        results = await retriever.retrieve(query)
+        return [result.node.text for result in results]
+
+__all__ = ["MultiModalRetriever"]

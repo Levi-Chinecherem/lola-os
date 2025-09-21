@@ -6,6 +6,7 @@ How: Defines package-level exports for developer imports.
 Why: Centralizes access to agent implementations, per Developer Sovereignty.
 Full Path: lola-os/python/lola/agents/__init__.py
 """
+
 from .base import BaseAgent
 from .react import ReActAgent
 from .plan_execute import PlanExecuteAgent

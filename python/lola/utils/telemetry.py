@@ -1,30 +1,37 @@
 # Standard imports
-from typing import Dict, Any
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-# Local
+# Local imports
 from lola.utils.logging import logger
 
 """
-File: Telemetry export stub for LOLA OS TMVP 1 Phase 3.
+File: Telemetry export for LOLA OS TMVP 1 Phase 3.
 
-Purpose: Provides a stub for exporting metrics to OpenTelemetry.
-How: Logs metrics; will integrate with OpenTelemetry in TMVP 2.
-Why: Prepares for production monitoring, per Radical Reliability.
+Purpose: Exports tracing metrics using OpenTelemetry.
+How: Uses opentelemetry-api and otlp exporter for traces.
+Why: Enables performance monitoring, per Radical Reliability.
 Full Path: lola-os/python/lola/utils/telemetry.py
-Future Optimization: Integrate OpenTelemetry SDK in TMVP 2.
 """
 
-class Telemetry:
-    """Stub for exporting metrics to OpenTelemetry."""
+def setup_telemetry(endpoint: str = "http://localhost:4317") -> None:
+    """
+    Initialize OpenTelemetry tracing.
 
-    def export_metric(self, name: str, value: float, attributes: Dict[str, Any] = None) -> None:
-        """
-        Export a metric (stub for TMVP 1).
+    Args:
+        endpoint: OTLP exporter endpoint (default: local gRPC).
 
-        Args:
-            name: Metric name (e.g., agent_execution_time).
-            value: Metric value.
-            attributes: Optional metadata.
-        Does Not: Send to OpenTelemetry—logs only in TMVP 1.
-        """
-        logger.info(f"Telemetry metric: {name}={value}, attributes={attributes or {}}")
+    Does not:
+        Collect metrics beyond traces.
+    """
+    try:
+        trace.set_tracer_provider(TracerProvider())
+        exporter = OTLPSpanExporter(endpoint=endpoint)
+        span_processor = BatchSpanProcessor(exporter)
+        trace.get_tracer_provider().add_span_processor(span_processor)
+        logger.info(f"Telemetry initialized with endpoint {endpoint}")
+    except Exception as e:
+        logger.error(f"Failed to initialize telemetry: {e}")
+        raise

@@ -3,37 +3,47 @@ import typing as tp
 
 # Local
 from lola.core.graph import Node
+from lola.core.state import State
 from lola.tools.human_input import HumanInputTool
 
 """
-File: Defines the ApprovalGatewayNode for LOLA OS TMVP 1 Phase 2.
+File: Defines the ApprovalGatewayNode class for LOLA OS TMVP 1 Phase 2.
 
 Purpose: Pauses workflows for human approval.
-How: Uses HumanInputTool to request approval via Node.
-Why: Enables human oversight, per Choice by Design.
+How: Integrates as a graph node using HumanInputTool for input.
+Why: Ensures human oversight in critical steps, per Choice by Design tenet.
 Full Path: lola-os/python/lola/hitl/approval.py
+Future Optimization: Migrate to Rust for UI integration (post-TMVP 1).
 """
-class ApprovalGatewayNode(Node):
-    """ApprovalGatewayNode: Pauses for human approval. Does NOT persist state—use StateManager."""
 
-    def __init__(self, human_input_tool: HumanInputTool, id: str = "approval"):
+class ApprovalGatewayNode(Node):
+    """ApprovalGatewayNode: Pauses for human approval in graphs. Does NOT persist input—use StateManager."""
+
+    def __init__(self, id: str = "approval"):
         """
-        Initialize with a human input tool.
+        Initialize the approval node.
 
         Args:
-            human_input_tool: HumanInputTool instance.
-            id: Node identifier.
+            id: Node ID.
         """
-        super().__init__(id=id, type="hitl", function=self._approve, description="Human approval step")
-        self.human_input_tool = human_input_tool
+        super().__init__(id=id, action=self.approve, type="hitl")
+        self.input_tool = HumanInputTool()
 
-    async def _approve(self, state: tp.Any) -> dict:
+    async def approve(self, state: State) -> State:
         """
-        Request human approval.
+        Prompts for human approval.
 
         Args:
             state: Current state.
+
         Returns:
-            dict: Approval result (stubbed for now).
+            Updated state with approval status.
+
+        Does Not: Handle escalation—use escalation.py.
         """
-        return self.human_input_tool.execute("Request approval")
+        prompt = f"Approve action? Current output: {state.output}"
+        approval = await self.input_tool.execute(prompt)
+        state.metadata["approved"] = "yes" in approval.lower()
+        return state
+
+__all__ = ["ApprovalGatewayNode"]

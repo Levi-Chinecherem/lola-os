@@ -1,55 +1,49 @@
-# Tutorial: Building Onchain Tools
+# Building On-Chain Tools
 
-This tutorial shows how to build an EVM read tool for LOLA OS agents.
+This tutorial guides you through creating an on-chain tool for LOLA OS.
 
-## Step 1: Create a Project
+## Step 1: Scaffold a Project
+
 ```bash
-poetry run lola create onchain_tool
-cd onchain_tool
-poetry install
+poetry run lola create my_onchain --template react
+cd my_onchain
 ```
 
 ## Step 2: Configure the Agent
+
 Edit `config.yaml`:
 ```yaml
-model: openai/gpt-4o
-rpc_url: https://mainnet.infura.io/v3/your-infura-key
-api_key: your-api-key-here
+openai_api_key: "your-openai-api-key"
+web3_provider_uri: "https://sepolia.infura.io/v3/your-infura-key"
 ```
 
-## Step 3: Create a Custom Tool
-Create `tools/custom_contract.py`:
+## Step 3: Create a Contract Tool
+
+Create `agents/contract_tool.py`:
 ```python
 from lola.tools.onchain.contract_call import ContractCallTool
-from lola.utils.logging import logger
 from web3 import Web3
 
-class CustomContractTool(ContractCallTool):
-    def __init__(self, web3: Web3):
-        super().__init__(web3=web3)
-        logger.info("Initialized CustomContractTool")
+w3 = Web3(Web3.HTTPProvider(config.get("web3_provider_uri")))
+contract_address = "0x1c3140aB59d6cAf9fa7459C6fBC1F1B7c3e7c4B0"
+abi = [{"constant": True, "inputs": [], "name": "getReserves", "outputs": [{"name": "_reserve0", "type": "uint112"}, {"name": "_reserve1", "type": "uint112"}, {"name": "_blockTimestampLast", "type": "uint32"}], "type": "function"}]
+tool = ContractCallTool(w3=w3, contract_address=contract_address, abi=abi)
 ```
 
-## Step 4: Update the Agent
-Modify `agent.py`:
-```python
-from lola.agents.react import ReActAgent
-from tools.custom_contract import CustomContractTool
-from lola.utils.config import load_config
-from web3 import Web3
+## Step 4: Run the Agent
 
-class OnchainAgent(ReActAgent):
-    def __init__(self):
-        config = load_config()
-        web3 = Web3(Web3.HTTPProvider(config["rpc_url"]))
-        super().__init__(tools=[CustomContractTool(web3)], model=config["model"])
-```
-
-## Step 5: Run the Agent
+Edit `agents/main.py` to use the tool, then run:
 ```bash
-poetry run lola run onchain_tool.agent.OnchainAgent "Get NFT floor price"
+poetry run lola run agents/main.py "Get Uniswap pair price"
+```
+
+## Expected Output
+
+```
+Agent output: The USDC/WETH pair price is approximately 0.0005 ETH.
 ```
 
 ## Next Steps
-- Explore `lola.chains` for more EVM abstractions.
-- See [Onchain Analyst Example](../../examples/onchain_analyst/).
+
+- Explore other EVM tools in `lola.tools.onchain`.
+- Run the on-chain analyst example: [On-Chain Analyst](../../examples/onchain_analyst/README.md).

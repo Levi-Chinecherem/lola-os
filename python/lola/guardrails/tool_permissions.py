@@ -5,24 +5,47 @@ import typing as tp
 from lola.tools.base import BaseTool
 
 """
-File: Defines the ToolPermissionManager for LOLA OS TMVP 1 Phase 2.
+File: Defines the ToolPermissionManager class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Manages role-based access control for tools.
-How: Uses stubbed permission logic (to be extended with RBAC).
-Why: Ensures secure tool access, per Radical Reliability.
+Purpose: Manages role-based tool permissions.
+How: Uses dict for role-tool mapping.
+Why: Ensures secure tool access, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/guardrails/tool_permissions.py
+Future Optimization: Migrate to Rust for secure permissions (post-TMVP 1).
 """
-class ToolPermissionManager:
-    """ToolPermissionManager: Controls tool access. Does NOT execute tools—use BaseTool."""
 
-    def check_permission(self, tool: BaseTool, role: str) -> bool:
+class ToolPermissionManager:
+    """ToolPermissionManager: Manages tool permissions. Does NOT persist permissions—use StateManager."""
+
+    def __init__(self):
         """
-        Check if a role has permission to use a tool.
+        Initialize with empty permissions.
+        """
+        self.permissions = {}
+
+    def add_permission(self, role: str, tool_name: str) -> None:
+        """
+        Adds permission for a role to use a tool.
 
         Args:
-            tool: BaseTool instance.
-            role: Role identifier.
-        Returns:
-            bool: True if permitted (stubbed for now).
+            role: Role name.
+            tool_name: Tool name.
         """
-        return True
+        if role not in self.permissions:
+            self.permissions[role] = []
+        self.permissions[role].append(tool_name)
+
+    def check_permission(self, role: str, tool: BaseTool) -> bool:
+        """
+        Checks if a role has permission to use a tool.
+
+        Args:
+            role: Role name.
+            tool: BaseTool instance.
+
+        Returns:
+            True if permitted, False otherwise.
+        """
+        return tool.name in self.permissions.get(role, [])
+
+__all__ = ["ToolPermissionManager"]

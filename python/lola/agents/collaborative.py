@@ -1,51 +1,52 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
-from lola.tools.base import BaseTool
+from lola.orchestration.swarm import AgentSwarmOrchestrator
 
 """
-File: Defines the CollaborativeAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the CollaborativeAgent class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Implements a multi-agent collaborative workflow.
-How: Uses StateGraph to coordinate multiple agents via LLM.
-Why: Enables teamwork among agents, per Choice by Design.
+Purpose: Implements a collaborative agent pattern for multi-agent teamwork.
+How: Uses AgentSwarmOrchestrator to coordinate sub-agents for task decomposition.
+Why: Enables team-based problem-solving, per Choice by Design tenet.
 Full Path: lola-os/python/lola/agents/collaborative.py
+Future Optimization: Migrate to Rust for high-throughput collaboration (post-TMVP 1).
 """
-class CollaborativeAgent(BaseAgent):
-    """CollaborativeAgent: Coordinates multiple agents. Does NOT persist state—use StateManager."""
 
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
+class CollaborativeAgent(BaseTemplateAgent):
+    """CollaborativeAgent: Implements multi-agent collaboration. Does NOT persist state—use StateManager."""
+
+    def __init__(self, sub_agents: tp.List[BaseTemplateAgent], model: str = "openai/gpt-4o"):
         """
-        Initialize with tools and LLM model.
+        Initialize with sub-agents and LLM model.
 
         Args:
-            tools: List of BaseTool instances.
+            sub_agents: List of BaseTemplateAgent instances for collaboration.
             model: LLM model string for litellm.
         """
-        super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="coordinate", type="llm", function=self._coordinate, description="Coordination step"))
+        super().__init__(tools=[], model=model)
+        self.orchestrator = AgentSwarmOrchestrator(sub_agents)
 
     async def run(self, query: str) -> State:
         """
-        Run a collaborative cycle on the query.
+        Execute collaborative task.
 
         Args:
             query: User input string.
         Returns:
-            State: Updated state with coordination results.
-        Does Not: Persist state—caller must use StateManager.
+            State: Final state after collaboration.
+        Does Not: Handle contract negotiation—use orchestration/contract_net.py.
         """
         self.state.update({"query": query})
-        return await self.graph.execute()
+        # Inline: Decompose task with LLM
+        decomposition = await self._call_llm(f"Decompose into sub-tasks: {query}")
+        sub_tasks = decomposition.split("\n")
+        # Inline: Assign sub-tasks to sub-agents
+        results = await self.orchestrator.run(sub_tasks)
+        self.state.update({"output": results})
+        return self.state
 
-    async def _coordinate(self, state: State) -> dict:
-        """Coordinate among agents using LLM."""
-        prompt = f"Coordinate tasks for: {state.data.get('query')}"
-        response = await self._call_llm(prompt)
-        return {"coordination": response}
+__all__ = ["CollaborativeAgent"]

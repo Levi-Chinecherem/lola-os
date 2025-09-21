@@ -5,30 +5,38 @@ import typing as tp
 from web3 import Web3
 
 """
-File: Defines the ChainConnection for LOLA OS TMVP 1 Phase 2.
+File: Defines the ChainConnection class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a unified connection to EVM chains.
-How: Uses web3.py to initialize a Web3 provider.
-Why: Enables read-only chain interactions, per EVM-Native tenet.
+Purpose: Provides a connection to EVM chains for read operations.
+How: Uses web3.py to connect to RPC providers.
+Why: Enables real EVM access for agents, per EVM-Native tenet.
 Full Path: lola-os/python/lola/chains/connection.py
+Future Optimization: Migrate to Rust for fast connections (post-TMVP 1).
 """
-class ChainConnection:
-    """ChainConnection: Manages EVM chain connections. Does NOT handle writes—TMVP 2."""
 
-    def __init__(self, provider_url: str):
+class ChainConnection:
+    """ChainConnection: Manages connection to EVM chains."""
+
+    def __init__(self, rpc_url: str):
         """
-        Initialize with a provider URL.
+        Initialize with RPC URL.
 
         Args:
-            provider_url: URL of the EVM provider (e.g., Infura).
+            rpc_url: EVM RPC URL.
         """
-        self.web3 = Web3(Web3.HTTPProvider(provider_url))
+        self.w3 = Web3(Web3.HTTPProvider(rpc_url))
+        if not self.w3.is_connected():
+            raise ConnectionError("Failed to connect to EVM chain.")
 
-    def is_connected(self) -> bool:
+    def get_block_number(self) -> int:
         """
-        Check if the connection is active.
+        Gets the current block number.
 
         Returns:
-            bool: True if connected, False otherwise.
+            Current block number.
+
+        Does Not: Handle errors—caller must wrap in try/except.
         """
-        return self.web3.is_connected()
+        return self.w3.eth.block_number
+
+__all__ = ["ChainConnection"]

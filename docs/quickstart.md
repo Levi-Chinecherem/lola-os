@@ -2,39 +2,48 @@
 
 This guide helps you install LOLA OS and run your first agent.
 
+## Prerequisites
+
+- Python 3.10+
+- Poetry
+- API keys for OpenAI and Pinecone
+- Ethereum testnet RPC (e.g., Sepolia)
+
 ## Installation
+
 1. Clone the repository:
    ```bash
-   git clone https://github.com/xai/lola-os
+   git clone https://github.com/your-org/lola-os.git
    cd lola-os
    ```
-2. Install dependencies with Poetry:
+
+2. Install dependencies:
    ```bash
    poetry install
-   ```
-3. Set PYTHONPATH:
-   ```bash
-   export PYTHONPATH=$(pwd)/python:$PYTHONPATH
    ```
 
-## Run Your First Agent
-1. Create a project:
+3. Set environment variables:
    ```bash
-   poetry run lola create my_project
-   cd my_project
-   poetry install
+   export PINECONE_API_KEY="your-key"
+   export OPENAI_API_KEY="your-key"
+   export WEB3_PROVIDER_URI="https://sepolia.infura.io/v3/your-infura-key"
+   export REDIS_URL="redis://localhost:6379/0"
    ```
-2. Configure `config.yaml`:
-   ```yaml
-   model: openai/gpt-4o
-   api_key: your-api-key-here
-   ```
-3. Run the agent:
-   ```bash
-   poetry run lola run my_project.agent.BasicAgent "Test query"
-   ```
+
+## Run an Example
+
+Try the research agent:
+```bash
+cd examples/research_agent
+poetry run python agent.py "What is the capital of France?"
+```
+
+Expected output:
+```
+Research result: The capital of France is Paris.
+```
 
 ## Next Steps
-- Explore [Examples](../examples/) for advanced use cases.
-- Read [Concepts](concepts/) to understand core components.
-- Follow [Tutorials](tutorials/) to build custom agents.
+
+- Explore [Core Concepts](concepts/core.md)
+- Follow [Tutorials](tutorials/build_your_first_agent.md)

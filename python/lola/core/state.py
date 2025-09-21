@@ -1,28 +1,38 @@
-# Third-party
 from pydantic import BaseModel
-from typing import Dict, Any
+import typing as tp
 
 """
-File: Defines the State class for LOLA OS TMVP 1.
+File: Defines the State Pydantic model for LOLA OS graph execution.
 
-Purpose: Provides a strongly-typed structure for agent state.
-How: Uses Pydantic for validation and serialization.
-Why: Ensures predictable state management, per Radical Reliability.
+Purpose: Provides a strongly-typed, serializable state for tracking agent execution context.
+How: Uses Pydantic for validation and serialization, stores data like query, history, and outputs.
+Why: Ensures radical reliability via explicit state management, per LOLA's tenets.
 Full Path: lola-os/python/lola/core/state.py
 """
 
 class State(BaseModel):
-    """Strongly-typed Pydantic model for agent state."""
+    """State: Pydantic model for agent execution state."""
 
-    data: Dict[str, Any] = {}
-    history: list = []
+    query: str = ""  # Initial user query
+    history: tp.List[tp.Dict[str, str]] = []  # Conversation history
+    output: tp.Optional[str] = None  # Current node output
+    metadata: tp.Dict[str, tp.Any] = {}  # Flexible storage for tools/EVM
 
-    def update(self, new_data: Dict[str, Any]) -> None:
+    class Config:
+        """Pydantic config for JSON serialization."""
+        arbitrary_types_allowed = True
+
+    def update(self, **kwargs) -> None:
         """
-        Update state with new data and append to history.
+        Updates state fields with validation.
 
         Args:
-            new_data: Dictionary of new state values.
+            **kwargs: Fields to update (e.g., query, output).
+
+        Does Not: Persist to storage—use StateManager.
         """
-        self.data.update(new_data)
-        self.history.append(new_data)
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
+__all__ = ["State"]

@@ -1,26 +1,40 @@
-# Onchain Analyst Agent Example
+# LOLA OS On-Chain Analyst Example
 
-This example demonstrates a ReAct-based agent for reading NFT floor prices using LOLA OS.
+This example demonstrates a ReAct-based agent that queries Uniswap contract data on the Ethereum testnet (e.g., Sepolia).
+
+## Prerequisites
+
+- Python 3.10+
+- Poetry installed
+- OpenAI API key
+- Access to an Ethereum testnet RPC (e.g., Sepolia)
 
 ## Setup
-1. Install LOLA OS:
+
+1. Install dependencies:
    ```bash
    poetry install
    ```
-2. Set API key and RPC URL in `config.yaml`:
-   ```yaml
-   model: openai/gpt-4o
-   rpc_url: https://mainnet.infura.io/v3/your-infura-key
-   api_key: your-api-key-here
+
+2. Set environment variables or update `config.yaml`:
+   ```bash
+   export OPENAI_API_KEY="your-key"
+   export WEB3_PROVIDER_URI="https://sepolia.infura.io/v3/your-infura-key"
    ```
+
 3. Run the agent:
    ```bash
-   poetry run python agent.py "Get the floor price of Bored Ape Yacht Club"
+   poetry run python agent.py "Get Uniswap pair price"
    ```
 
-## Features
-- Uses `ContractCallTool` for read-only EVM queries via `web3.py`.
-- Configurable via `config.yaml` with `litellm` and `web3.py` support.
+## Expected Output
 
-## Output
-The agent returns a `State` object with on-chain data, logged to stdout.
+The agent will query the Uniswap contract and return an answer like:
+```
+On-chain analysis result: The USDC/WETH pair price is approximately 0.0005 ETH.
+```
+
+## Next Steps
+
+- Modify `agent.py` to query different contracts or add tools.
+- Explore the LOLA OS documentation for advanced EVM integrations.

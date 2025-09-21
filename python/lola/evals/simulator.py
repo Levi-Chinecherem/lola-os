@@ -1,28 +1,40 @@
 # Standard imports
 import typing as tp
+from unittest.mock import Mock
 
 # Local
-from lola.agents.base import BaseAgent
+from lola.agents.base import BaseTemplateAgent
+from lola.core.state import State
 
 """
-File: Defines the AgenticSimulator for LOLA OS TMVP 1 Phase 2.
+File: Defines the AgenticSimulator class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Simulates agent interactions with mock APIs.
-How: Uses stubbed simulation logic (to be extended with mocks).
-Why: Tests agents in controlled environments, per Radical Reliability.
+Purpose: Simulates agent interactions with mock environments.
+How: Uses unittest.mock to simulate API/tools.
+Why: Tests agents in controlled settings, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/evals/simulator.py
+Future Optimization: Migrate to Rust for complex simulations (post-TMVP 1).
 """
-class AgenticSimulator:
-    """AgenticSimulator: Simulates agent interactions. Does NOT execute agents—use BaseAgent."""
 
-    def simulate(self, agent: BaseAgent, environment: str) -> dict:
+class AgenticSimulator:
+    """AgenticSimulator: Simulates agent environments. Does NOT persist simulations—use StateManager."""
+
+    def simulate(self, agent: BaseTemplateAgent, mock_responses: tp.Dict[str, tp.Any]) -> State:
         """
-        Simulate agent interactions.
+        Simulates agent run with mock responses.
 
         Args:
-            agent: BaseAgent instance.
-            environment: Environment identifier.
+            agent: BaseTemplateAgent instance.
+            mock_responses: Dict of tool name to mock response.
+
         Returns:
-            dict: Simulation results (stubbed for now).
+            Simulated state.
+
+        Does Not: Handle adversarial—use adversarial.py.
         """
-        return {"results": f"Stubbed simulation for: {environment}"}
+        # Inline: Mock tool execution
+        for tool in agent.tools:
+            tool.execute = Mock(return_value=mock_responses.get(tool.name, "mock_result"))
+        return agent.run("simulated query")
+
+__all__ = ["AgenticSimulator"]

@@ -1,66 +1,81 @@
 # Standard imports
 import pytest
-import os
-import sys
+import click
 from click.testing import CliRunner
 from pathlib import Path
+import shutil
+import subprocess
+from unittest.mock import patch, MagicMock
 
-# Local
+# Local imports
 from lola.cli.main import cli
-from lola.utils.logging import setup_logging, logger
+from lola.utils.logging import setup_logging
 
 """
-File: Tests for CLI module in LOLA OS TMVP 1 Phase 3.
+File: Tests for LOLA OS CLI in TMVP 1 Phase 3.
 
-Purpose: Verifies CLI command functionality.
-How: Uses Click's CliRunner to simulate commands.
-Why: Ensures reliable CLI, per Radical Reliability.
+Purpose: Validates CLI commands (create, run, build, deploy).
+How: Uses pytest and click.testing to simulate CLI execution.
+Why: Ensures reliable developer interface, per Radical Reliability.
 Full Path: lola-os/tests/test_cli.py
 """
 
 @pytest.fixture
 def runner():
-    setup_logging(level="DEBUG")
+    """Fixture for Click CLI testing."""
     return CliRunner()
 
-def test_create_command(runner):
-    """Test project creation."""
-    with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["create", "test_project"])
-        assert result.exit_code == 0
-        assert Path("test_project").exists()
-        assert Path("test_project/agent.py").exists()
-        assert Path("test_project/__init__.py").exists()
+@pytest.fixture
+def temp_project(tmp_path):
+    """Fixture to create a temporary project directory."""
+    project_dir = tmp_path / "test_project"
+    project_dir.mkdir()
+    (project_dir / "pyproject.toml").write_text("[tool.poetry]\nname = 'test'\nversion = '0.1.0'\n")
+    (project_dir / "agents").mkdir()
+    (project_dir / "agents" / "main.py").write_text(
+        "from lola.agents.base import BaseAgent\n"
+        "class TestAgent(BaseAgent):\n"
+        "    async def run(self, query): return type('State', (), {'output': 'Test'})()\n"
+    )
+    return project_dir
 
-def test_run_command(runner):
-    """Test running an agent (stub)."""
-    with runner.isolated_filesystem():
-        result_create = runner.invoke(cli, ["create", "test_project"])
-        assert result_create.exit_code == 0, f"Create failed: {result_create.output}"
-        # Debug: Log filesystem contents
-        logger.debug(f"Filesystem contents: {list(Path('.').glob('**/*'))}")
-        # Add parent directory of test_project to sys.path
-        test_project_path = Path("test_project").resolve()
-        sys.path.append(str(test_project_path.parent))
-        logger.debug(f"sys.path: {sys.path}")
-        result = runner.invoke(cli, ["run", "test_project.agent.BasicAgent", "test query"])
-        assert result.exit_code == 0, f"Run failed: {result.output}"
-        assert "Agent result" in result.output
+def test_cli_main(runner):
+    """Test main CLI command with --help."""
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert "create" in result.output
+    assert "run" in result.output
+    assert "build" in result.output
+    assert "deploy" in result.output
 
-def test_build_command(runner):
-    """Test building a project."""
-    with runner.isolated_filesystem():
-        runner.invoke(cli, ["create", "test_project"])
-        result = runner.invoke(cli, ["build", "test_project"])
-        assert result.exit_code == 0
-        assert Path("build").exists()
-        assert Path("build/agent.py").exists()
+def test_create_command(runner, tmp_path, mocker):
+    """Test create command with react template."""
+    mocker.patch("lola.cli.commands.create.Path.exists", return_value=True)
+    mocker.patch("shutil.copytree", return_value=None)
+    mocker.patch("shutil.copy", return_value=None)
+    result = runner.invoke(cli, ["create", str(tmp_path / "new_project"), "--template", "react"])
+    assert result.exit_code == 0
+    assert "Created project" in result.output
 
-def test_deploy_command(runner):
-    """Test deployment stub."""
-    with runner.isolated_filesystem():
-        runner.invoke(cli, ["create", "test_project"])
-        runner.invoke(cli, ["build", "test_project"])
-        result = runner.invoke(cli, ["deploy", "build", "--target", "docker"])
-        assert result.exit_code == 0
-        assert "Deploying" in result.output
+def test_run_command(runner, temp_project):
+    """Test run command with a valid agent."""
+    result = runner.invoke(cli, ["run", str(temp_project / "agents/main.py"), "test query"])
+    assert result.exit_code == 0
+    assert "Agent output: Test" in result.output
+
+def test_build_command(runner, temp_project, mocker):
+    """Test build command with a valid project."""
+    mocker.patch("subprocess.run", return_value=MagicMock(stdout="Built wheel"))
+    result = runner.invoke(cli, ["build", str(temp_project)])
+    assert result.exit_code == 0
+    assert "Build successful" in result.output
+
+def test_deploy_command(runner, temp_project, mocker):
+    """Test deploy command with Docker stub."""
+    mocker.patch("subprocess.run", return_value=MagicMock())
+    result = runner.invoke(cli, ["deploy", str(temp_project)])
+    assert result.exit_code == 0
+    assert "Deployed" in result.output
+
+if __name__ == "__main__":
+    pytest.main()

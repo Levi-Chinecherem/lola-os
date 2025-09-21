@@ -6,6 +6,7 @@ How: Defines package-level exports for developer imports.
 Why: Centralizes access to tools, per Developer Sovereignty.
 Full Path: lola-os/python/lola/tools/__init__.py
 """
+
 from .base import BaseTool
 from .web_search import WebSearchTool
 from .data_analysis import DataAnalysisTool

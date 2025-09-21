@@ -1,56 +1,65 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
-from lola.tools.base import BaseTool
 
 """
-File: Defines the PlanExecuteAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the PlanExecuteAgent class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Implements a planning and execution agent for structured tasks.
-How: Uses StateGraph to generate and execute plans via LLM.
-Why: Enables goal-oriented workflows, per Choice by Design.
+Purpose: Implements the Plan-Execute agent pattern for goal-oriented tasks.
+How: Generates a plan with LLM, then executes steps sequentially.
+Why: Supports structured task completion, per Choice by Design tenet.
 Full Path: lola-os/python/lola/agents/plan_execute.py
+Future Optimization: Migrate to Rust for parallel plan execution (post-TMVP 1).
 """
-class PlanExecuteAgent(BaseAgent):
-    """PlanExecuteAgent: Generates and executes plans. Does NOT persist state—use StateManager."""
 
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
-        """
-        Initialize with tools and LLM model.
-
-        Args:
-            tools: List of BaseTool instances.
-            model: LLM model string for litellm.
-        """
-        super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="plan", type="llm", function=self._plan, description="Planning step"))
-        self.graph.add_node(Node(id="execute", type="tool", function=self._execute, description="Execution step"))
+class PlanExecuteAgent(BaseTemplateAgent):
+    """PlanExecuteAgent: Implements Plan-Execute pattern. Does NOT persist state—use StateManager."""
 
     async def run(self, query: str) -> State:
         """
-        Run a plan-execute cycle on the query.
+        Execute the Plan-Execute loop for the query.
 
         Args:
             query: User input string.
         Returns:
-            State: Updated state with plan/execution.
-        Does Not: Persist state—caller must use StateManager.
+            State: Final state after plan generation and execution.
+        Does Not: Handle concurrent execution—use perf_opt/hardware.py.
         """
-        self.state.update({"query": query})
-        return await self.graph.execute()
+        self.state.update({"query": query, "plan": [], "results": []})
+        # Inline: Generate plan with LLM
+        plan_prompt = f"Generate a step-by-step plan for: {query}"
+        plan = await self._call_llm(plan_prompt)
+        self.state.data["plan"] = plan.split("\n")
+        # Inline: Execute each plan step
+        for step in self.state.data["plan"]:
+            if step.strip():
+                action = await self._call_llm(f"Execute step: {step}\nContext: {self.state.history}")
+                tool_name, tool_params = self.parse_action(action)
+                result = await self.execute_tool(tool_name, tool_params)
+                self.state.data["results"].append(result)
+                self.state.history.append({"role": "execution", "content": f"Step: {step}, Result: {result}"})
+        self.state.update({"output": "Plan completed"})
+        return self.state
 
-    async def _plan(self, state: State) -> dict:
-        """Generate a plan using LLM."""
-        prompt = f"Generate a plan for: {state.data.get('query')}"
-        response = await self._call_llm(prompt)
-        return {"plan": response}
+    def parse_action(self, action: str) -> tp.Tuple[str, tp.Dict[str, tp.Any]]:
+        """
+        Parses action string into tool name and parameters.
 
-    async def _execute(self, state: State) -> dict:
-        """Execute the plan using tools."""
-        return {"execution": "stubbed_execution"}
+        Args:
+            action: LLM-generated action string.
+
+        Returns:
+            Tuple of tool name and parameters dict.
+
+        Does Not: Validate parameters—use guardrails/prompt_shield.py.
+        """
+        # Inline: Simple parsing; improve with NLP in TMVP 2
+        tool_name = action.split("(")[0].strip()
+        params_str = action.split("(")[1].split(")")[0]
+        params = {p.split("=")[0].strip(): p.split("=")[1].strip() for p in params_str.split(",")}
+        return tool_name, params
+
+__all__ = ["PlanExecuteAgent"]

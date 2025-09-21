@@ -1,39 +1,42 @@
-# Tutorial: Build Your First Agent
+# Build Your First Agent
 
-This tutorial guides you through building a ReAct-based agent with LOLA OS.
+This tutorial guides you through creating a ReAct agent with LOLA OS.
 
-## Step 1: Create a Project
+## Step 1: Scaffold a Project
+
 ```bash
-poetry run lola create my_agent
+poetry run lola create my_agent --template react
 cd my_agent
-poetry install
 ```
 
 ## Step 2: Configure the Agent
+
 Edit `config.yaml`:
 ```yaml
-model: openai/gpt-4o
-api_key: your-api-key-here
+openai_api_key: "your-openai-api-key"
 ```
 
-## Step 3: Customize the Agent
-Modify `agent.py`:
-```python
-from lola.agents.react import ReActAgent
-from lola.tools.web_search import WebSearchTool
-from lola.utils.logging import logger
+## Step 3: Modify the Agent
 
-class MyAgent(ReActAgent):
-    def __init__(self):
-        super().__init__(tools=[WebSearchTool()], model="openai/gpt-4o")
-        logger.info("Initialized MyAgent")
+Edit `agents/main.py` to add a custom tool:
+```python
+from lola.tools.web_search import WebSearchTool
+agent = ReActAgent(tools=[WebSearchTool()], model=config.get("openai_api_key"))
 ```
 
 ## Step 4: Run the Agent
+
 ```bash
-poetry run lola run my_agent.agent.MyAgent "Research AI trends"
+poetry run lola run agents/main.py "What is the weather today?"
+```
+
+## Expected Output
+
+```
+Agent output: The weather today in New York is sunny, 75°F.
 ```
 
 ## Next Steps
+
 - Add more tools from `lola.tools`.
-- Explore [Concepts](../concepts/) for advanced features.
+- Explore on-chain tools: [Building On-Chain Tools](building_onchain_tools.md).

@@ -6,8 +6,13 @@ How: Defines package-level exports for onchain tools.
 Why: Centralizes access to EVM tools, per Developer Sovereignty.
 Full Path: lola-os/python/lola/tools/onchain/__init__.py
 """
+
 from .contract_call import ContractCallTool
 from .event_listener import EventListenerTool
 from .oracle_fetch import OracleFetchTool
 
-__all__ = ["ContractCallTool", "EventListenerTool", "OracleFetchTool"]
+__all__ = [
+    "ContractCallTool",
+    "EventListenerTool",
+    "OracleFetchTool",
+]

@@ -1,51 +1,57 @@
 # Standard imports
 import pytest
-import os
 from pathlib import Path
-from io import StringIO
 import logging
+import os
+from unittest.mock import patch, MagicMock
 
-# Local
+# Local imports
 from lola.utils.logging import setup_logging, logger
-from lola.utils.config import load_config
-from lola.utils.telemetry import Telemetry
+from lola.utils.config import load_config, config
+from lola.utils.telemetry import setup_telemetry
 
 """
-File: Tests for utils module in LOLA OS TMVP 1 Phase 3.
+File: Tests for LOLA OS utilities in TMVP 1 Phase 3.
 
-Purpose: Verifies utility component functionality.
-How: Uses pytest to test logging, config, and telemetry.
-Why: Ensures robust utilities, per Radical Reliability.
+Purpose: Validates logging, configuration, and telemetry functionality.
+How: Uses pytest to test logging output, config loading, and telemetry setup.
+Why: Ensures reliable utilities, per Radical Reliability.
 Full Path: lola-os/tests/test_utils.py
 """
 
-def test_logging(capsys):
-    """Test structured logging setup."""
-    setup_logging(level="DEBUG")
-    logger.debug("Test log")
+@pytest.fixture
+def temp_config(tmp_path):
+    """Fixture to create a temporary YAML config file."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "pinecone_api_key: test_key\n"
+        "openai_api_key: test_openai\n"
+        "web3_provider_uri: http://localhost:8545\n"
+    )
+    return config_file
+
+def test_setup_logging(capsys):
+    """Test logging setup with JSON output."""
+    setup_logging(verbose=True)
+    logger.debug("Test debug message")
     captured = capsys.readouterr()
-    assert "Test log" in captured.out
     assert '"level": "DEBUG"' in captured.out
+    assert '"message": "Test debug message"' in captured.out
 
-def test_config_loading(tmp_path):
-    """Test configuration loading."""
-    config_path = tmp_path / "config.yaml"
-    config_data = {"model": "openai/gpt-4o"}
-    with open(config_path, "w") as f:
-        import yaml
-        yaml.dump(config_data, f)
-    
-    config = load_config(config_path)
-    assert config["model"] == "openai/gpt-4o"
+def test_load_config(temp_config):
+    """Test config loading from YAML and env vars."""
+    os.environ["PINECONE_API_KEY"] = "env_key"
+    loaded_config = load_config(temp_config)
+    assert loaded_config["pinecone_api_key"] == "env_key"
+    assert loaded_config["openai_api_key"] == "test_openai"
+    assert loaded_config["web3_provider_uri"] == "http://localhost:8545"
 
-def test_config_env_override(monkeypatch):
-    """Test environment variable override."""
-    monkeypatch.setenv("LOLA_MODEL", "anthropic/claude-3")
-    config = load_config("nonexistent.yaml")
-    assert config["model"] == "anthropic/claude-3"
+def test_setup_telemetry(mocker):
+    """Test telemetry setup with OpenTelemetry."""
+    mocker.patch("opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter")
+    mocker.patch("opentelemetry.sdk.trace.TracerProvider")
+    setup_telemetry(endpoint="http://test:4317")
+    assert logger.info.called_with("Telemetry initialized with endpoint http://test:4317")
 
-def test_telemetry():
-    """Test telemetry export stub."""
-    telemetry = Telemetry()
-    telemetry.export_metric("agent_execution_time", 1.5, {"agent": "ReActAgent"})
-    # No assertion as it's a stub; logs output
+if __name__ == "__main__":
+    pytest.main()

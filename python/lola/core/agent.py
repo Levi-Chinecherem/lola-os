@@ -1,65 +1,83 @@
-# Standard imports
+import abc
 import typing as tp
-from abc import ABC, abstractmethod
-
-# Third-party
 from pydantic import BaseModel
 import litellm
-
-# Local
+from .graph import StateGraph
 from .state import State
-from ..tools.base import BaseTool
 
 """
-File: Defines the BaseAgent abstract class for LOLA OS TMVP 1.
+File: Defines the BaseAgent abstract class for LOLA OS agent implementations.
 
-Purpose: Provides the foundation for all agent implementations (e.g., ReAct, PlanExecute).
-How: Defines abstract methods for running agents with state and tool integration, using litellm for LLM calls.
-Why: Ensures consistent agent interfaces, per Developer Sovereignty and Explicit over Implicit tenets.
+Purpose: Provides a standardized interface for all agents to execute tasks using a graph-based workflow and LLM integration.
+How: Initializes with a StateGraph, uses litellm for LLM calls, and defines abstract methods for task execution.
+Why: Ensures developer sovereignty by allowing custom agents while maintaining consistent orchestration, per LOLA's tenets.
 Full Path: lola-os/python/lola/core/agent.py
-Future Optimization: Migrate to Rust for concurrent agent execution (post-TMVP 1).
 """
 
-class BaseAgent(ABC):
-    """Abstract base class for all LOLA OS agents. Does NOT persist state—use StateManager."""
+class BaseAgent(abc.ABC):
+    """BaseAgent: Abstract base class for all LOLA agents. Does NOT handle state persistence—use StateManager."""
 
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
+    def __init__(self, model: str, tools: tp.List[tp.Any] = None, graph: tp.Optional[StateGraph] = None):
         """
-        Initialize the agent with tools and LLM model.
-
-        Args:
-            tools: List of BaseTool instances for agent actions.
-            model: LLM model string for litellm (e.g., "openai/gpt-4o", "anthropic/claude-3-sonnet").
-        """
-        self.tools = {tool.name: tool for tool in tools}
-        self.model = model  # Unified LLM string for litellm
-        self.state = State()  # Initialize empty state
-
-    @abstractmethod
-    async def run(self, query: str) -> State:
-        """
-        Execute the agent's logic for a given query.
+        Initialize BaseAgent with a model, tools, and optional graph.
 
         Args:
-            query: User input string.
-        Returns:
-            State: Updated agent state after execution.
-        Does Not: Persist state—caller must use StateManager.
-        """
-        pass
+            model: LLM model string for litellm (e.g., "openai/gpt-4o").
+            tools: List of tools the agent can use (expanded in Phase 2).
+            graph: Optional StateGraph for workflow; created if None.
 
-    async def _call_llm(self, prompt: str) -> str:
+        Does Not: Persist state or connect to EVM—handled by StateManager and chains.
         """
-        Helper to call LLM via litellm.
+        self.model = model
+        self.tools = tools or []
+        self.graph = graph or StateGraph(State)
+        # Inline: Initialize empty state for new sessions
+        self.state = State()
+
+    def call_llm(self, prompt: str) -> str:
+        """
+        Calls the LLM via litellm with the configured model.
 
         Args:
             prompt: Input prompt string.
+
         Returns:
-            str: LLM response.
+            LLM response as a string.
+
+        Does Not: Handle retries or fallbacks—use agnostic/fallback.py in Phase 2.
         """
-        # Inline: Why litellm? Unified interface for model switching per Agnostic Adapter Pattern.
-        response = await litellm.acompletion(
+        # Inline: Use litellm for unified LLM access
+        response = litellm.completion(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000
         )
         return response.choices[0].message.content
+
+    @abc.abstractmethod
+    def run(self, query: str) -> State:
+        """
+        Abstract method to execute the agent's task.
+
+        Args:
+            query: User input string.
+
+        Returns:
+            Updated State with results.
+
+        Does Not: Handle errors—caller must wrap in try/except.
+        """
+        pass
+
+    def bind_tools(self, tools: tp.List[tp.Any]) -> None:
+        """
+        Binds tools to the agent.
+
+        Args:
+            tools: List of tools to bind.
+
+        Does Not: Validate tool permissions—use guardrails/tool_permissions.py in Phase 2.
+        """
+        self.tools.extend(tools)
+
+__all__ = ["BaseAgent"]

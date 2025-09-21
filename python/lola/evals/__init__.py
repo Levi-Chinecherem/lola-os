@@ -1,8 +1,8 @@
 """
 File: Initializes the evals module for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Exports evaluation and testing components for agents.
-How: Defines package-level exports for eval tools.
+Purpose: Exports evaluation components for agents.
+How: Defines package-level exports for developer imports.
 Why: Centralizes access to evaluation utilities, per Radical Reliability.
 Full Path: lola-os/python/lola/evals/__init__.py
 """

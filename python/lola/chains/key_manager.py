@@ -1,38 +1,56 @@
 # Standard imports
 import typing as tp
+from cryptography.fernet import Fernet
 
 """
-File: Defines the KeyManager for LOLA OS TMVP 1 Phase 2.
+File: Defines the KeyManager class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Manages private keys for EVM interactions.
-How: Provides a stubbed key storage interface (to be extended with secure storage).
-Why: Ensures secure key handling, per Developer Sovereignty.
+Purpose: Manages secure storage of private keys.
+How: Uses cryptography for encryption/decryption.
+Why: Ensures key security, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/chains/key_manager.py
+Future Optimization: Migrate to Rust for hardware key storage (post-TMVP 1).
 """
-class KeyManager:
-    """KeyManager: Handles private key storage. Does NOT handle signing—TMVP 2."""
 
-    def __init__(self):
-        """Initialize an empty key manager."""
+class KeyManager:
+    """KeyManager: Securely manages private keys."""
+
+    def __init__(self, master_key: str):
+        """
+        Initialize with master key for encryption.
+
+        Args:
+            master_key: Master encryption key.
+        """
+        self.cipher = Fernet(master_key.encode())
         self.keys = {}
 
-    def store_key(self, address: str, key: str) -> None:
+    def store_key(self, name: str, key: str) -> None:
         """
-        Store a private key (stubbed).
+        Stores an encrypted key.
 
         Args:
-            address: Wallet address.
-            key: Private key.
+            name: Key name.
+            key: Private key to store.
         """
-        self.keys[address] = key
+        encrypted = self.cipher.encrypt(key.encode())
+        self.keys[name] = encrypted
 
-    def get_key(self, address: str) -> str:
+    def get_key(self, name: str) -> str:
         """
-        Retrieve a private key (stubbed).
+        Retrieves and decrypts a key.
 
         Args:
-            address: Wallet address.
+            name: Key name.
+
         Returns:
-            str: Private key (stubbed for now).
+            Decrypted key.
+
+        Does Not: Handle key generation—use eth_account.
         """
-        return self.keys.get(address, "stubbed_key")
+        encrypted = self.keys.get(name)
+        if not encrypted:
+            raise ValueError(f"Key {name} not found.")
+        return self.cipher.decrypt(encrypted).decode()
+
+__all__ = ["KeyManager"]

@@ -1,51 +1,51 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
-from lola.tools.base import BaseTool
 
 """
-File: Defines the RouterAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the RouterAgent class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Routes queries to appropriate agents or tools.
-How: Uses StateGraph to select paths via LLM decisions.
-Why: Enables intelligent task delegation, per Choice by Design.
+Purpose: Implements a router agent for directing queries to specialized agents.
+How: Uses LLM to classify and route queries.
+Why: Enables intelligent task delegation, per Choice by Design tenet.
 Full Path: lola-os/python/lola/agents/router.py
+Future Optimization: Migrate to Rust for fast routing (post-TMVP 1).
 """
-class RouterAgent(BaseAgent):
-    """RouterAgent: Directs queries to agents/tools. Does NOT persist state—use StateManager."""
 
-    def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
+class RouterAgent(BaseTemplateAgent):
+    """RouterAgent: Routes queries to specialized agents. Does NOT persist state—use StateManager."""
+
+    def __init__(self, routed_agents: tp.Dict[str, BaseTemplateAgent], model: str = "openai/gpt-4o"):
         """
-        Initialize with tools and LLM model.
+        Initialize with routed agents and LLM model.
 
         Args:
-            tools: List of BaseTool instances.
+            routed_agents: Dict of category to BaseTemplateAgent.
             model: LLM model string for litellm.
         """
-        super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="route", type="llm", function=self._route, description="Routing step"))
+        super().__init__(tools=[], model=model)
+        self.routed_agents = routed_agents
 
     async def run(self, query: str) -> State:
         """
-        Route the query to appropriate agents/tools.
+        Route the query to the appropriate agent.
 
         Args:
             query: User input string.
         Returns:
-            State: Updated state with routing results.
-        Does Not: Persist state—caller must use StateManager.
+            State: Result from routed agent.
+        Does Not: Handle fallback—use agnostic/fallback.py.
         """
         self.state.update({"query": query})
-        return await self.graph.execute()
+        # Inline: Classify query with LLM
+        classification_prompt = f"Classify query into category: {query}\nCategories: {list(self.routed_agents.keys())}"
+        category = await self._call_llm(classification_prompt)
+        agent = self.routed_agents.get(category.strip(), None)
+        if not agent:
+            raise ValueError(f"No agent for category {category}")
+        return await agent.run(query)
 
-    async def _route(self, state: State) -> dict:
-        """Route the query using LLM."""
-        prompt = f"Determine the best agent/tool for: {state.data.get('query')}"
-        response = await self._call_llm(prompt)
-        return {"route": response}
+__all__ = ["RouterAgent"]

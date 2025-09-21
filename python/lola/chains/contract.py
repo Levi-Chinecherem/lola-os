@@ -1,22 +1,21 @@
 # Standard imports
 import typing as tp
 
-# Third-party
-from web3 import Web3
-
 # Local
 from .connection import ChainConnection
 
 """
-File: Defines the Contract for LOLA OS TMVP 1 Phase 2.
+File: Defines the Contract class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Loads and interacts with EVM contracts (read-only).
-How: Uses web3.py to load ABI and call functions.
-Why: Enables contract read operations, per EVM-Native tenet.
+Purpose: Provides an interface for interacting with EVM contracts.
+How: Wraps web3.py contract calls.
+Why: Simplifies contract operations for tools, per EVM-Native tenet.
 Full Path: lola-os/python/lola/chains/contract.py
+Future Optimization: Migrate to Rust for efficient calls (post-TMVP 1).
 """
+
 class Contract:
-    """Contract: Manages EVM contract interactions. Does NOT handle writes—TMVP 2."""
+    """Contract: Manages EVM contract interactions."""
 
     def __init__(self, connection: ChainConnection, address: str, abi: tp.List[dict]):
         """
@@ -25,18 +24,24 @@ class Contract:
         Args:
             connection: ChainConnection instance.
             address: Contract address.
-            abi: Contract ABI as a list of dicts.
+            abi: Contract ABI.
         """
-        self.contract = connection.web3.eth.contract(address=address, abi=abi)
+        self.contract = connection.w3.eth.contract(address=address, abi=abi)
 
-    def call_function(self, function_name: str, *args) -> dict:
+    async def call_function(self, function_name: str, args: tp.List[tp.Any]) -> tp.Any:
         """
-        Call a contract function (read-only).
+        Calls a contract function.
 
         Args:
-            function_name: Name of the function to call.
-            *args: Function arguments.
+            function_name: Function name.
+            args: Function arguments.
+
         Returns:
-            dict: Function call results (stubbed for now).
+            Function result.
+
+        Does Not: Handle transactions—read-only.
         """
-        return {"results": f"Stubbed call to {function_name}"}
+        func = getattr(self.contract.functions, function_name)
+        return func(*args).call()
+
+__all__ = ["Contract"]

@@ -1,9 +1,9 @@
 """
 File: Initializes the hitl module for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Exports human-in-the-loop components for agents.
-How: Defines package-level exports for HITL tools.
-Why: Centralizes access to human interaction utilities, per Choice by Design.
+Purpose: Exports human-in-the-loop components.
+How: Defines package-level exports for developer imports.
+Why: Centralizes access to HITL utilities, per Choice by Design.
 Full Path: lola-os/python/lola/hitl/__init__.py
 """
 from .approval import ApprovalGatewayNode

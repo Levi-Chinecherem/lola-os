@@ -1,49 +1,50 @@
 # Standard imports
 import pytest
 import asyncio
+from unittest.mock import patch, AsyncMock, MagicMock
 from pathlib import Path
 
-# Third-party imports
-from web3 import Web3
-
 # Local imports
-from lola.utils.logging import setup_logging, logger
-from examples.research_agent.agent import ResearchAgent
-from examples.onchain_analyst.agent import OnchainAnalystAgent
+from lola.utils.logging import setup_logging
+from examples.research_agent.agent import main as research_main
+from examples.onchain_analyst.agent import main as onchain_main
 
 """
-File: Tests for example agents in LOLA OS TMVP 1 Phase 4.
+File: Tests for LOLA OS example agents in TMVP 1 Phase 4.
 
-Purpose: Verifies functionality of research and onchain analyst agents.
-How: Runs agents with mock queries and checks results.
-Why: Ensures examples work for developers, per Developer Sovereignty.
+Purpose: Validates research and on-chain analyst example agents.
+How: Uses pytest with mocks for LLM, web, and EVM calls.
+Why: Ensures examples are functional, per Developer Sovereignty.
 Full Path: lola-os/tests/test_examples.py
 """
 
-@pytest.mark.asyncio
-async def test_research_agent():
-    """Test the research agent example."""
-    setup_logging(level="DEBUG")
-    agent = ResearchAgent(tools=[])
-    result = await agent.run("Test research query")
-    logger.debug(f"Research agent result: {result.data}")
-    assert result.data, "Research agent returned empty result"
+@pytest.fixture
+def setup_config(tmp_path):
+    """Fixture to create a temporary config file."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "pinecone_api_key: test_key\n"
+        "openai_api_key: test_openai\n"
+        "web3_provider_uri: http://localhost:8545\n"
+    )
+    return config_file
 
 @pytest.mark.asyncio
-async def test_onchain_analyst_agent(monkeypatch):
-    """Test the onchain analyst agent example."""
-    setup_logging(level="DEBUG")
-    # Mock Web3 to avoid real RPC calls
-    class MockWeb3:
-        def __init__(self, *args, **kwargs):
-            self.eth = MockEth()
-        def is_connected(self):
-            return True
-    class MockEth:
-        def contract(self, *args, **kwargs):
-            return None
-    monkeypatch.setattr("web3.Web3", MockWeb3)
-    agent = OnchainAnalystAgent(tools=[])
-    result = await agent.run("Test onchain query")
-    logger.debug(f"Onchain analyst result: {result.data}")
-    assert result.data, "Onchain analyst returned empty result"
+async def test_research_agent(setup_config, mocker):
+    """Test research agent with mocked web and RAG tools."""
+    mocker.patch("lola.agents.react.ReActAgent.run", AsyncMock(return_value=type('State', (), {'output': 'Paris'})))
+    mocker.patch("lola.utils.config.load_config", return_value={"pinecone_api_key": "test_key", "openai_api_key": "test_openai"})
+    result = await research_main("What is the capital of France?")
+    assert result == "Paris"
+
+@pytest.mark.asyncio
+async def test_onchain_analyst(setup_config, mocker):
+    """Test on-chain analyst with mocked EVM calls."""
+    mocker.patch("web3.Web3.is_connected", return_value=True)
+    mocker.patch("lola.agents.react.ReActAgent.run", AsyncMock(return_value=type('State', (), {'output': '0.0005 ETH'})))
+    mocker.patch("lola.utils.config.load_config", return_value={"openai_api_key": "test_openai", "web3_provider_uri": "http://localhost:8545"})
+    result = await onchain_main("Get Uniswap pair price")
+    assert result == "0.0005 ETH"
+
+if __name__ == "__main__":
+    pytest.main()

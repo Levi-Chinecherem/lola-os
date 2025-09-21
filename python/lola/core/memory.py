@@ -1,86 +1,133 @@
-# Standard imports
-import typing as tp
 import json
-
-# Third-party
+import typing as tp
+from pathlib import Path
+import litellm
 from pydantic import BaseModel
-
-# Local
 from .state import State
 
 """
-File: Defines memory management classes for LOLA OS TMVP 1.
+File: Implements StateManager, ConversationMemory, and EntityMemory for LOLA OS state and context management.
 
-Purpose: Manages state persistence, conversation history, and entity extraction.
-How: Implements StateManager, ConversationMemory, and EntityMemory with JSON persistence.
-Why: Enables reliable state and context retention, per Developer Sovereignty.
+Purpose: Manages state persistence, conversation history, and entity extraction for agents.
+How: Uses JSON for persistence, litellm for entity extraction, and in-memory storage for conversation history.
+Why: Ensures robust state management and context retention, supporting developer sovereignty and reliability.
 Full Path: lola-os/python/lola/core/memory.py
-Future Optimization: Migrate to Rust for high-throughput persistence (post-TMVP 1).
 """
 
 class ConversationMemory(BaseModel):
-    """Manages dialog history with LLMs."""
+    """ConversationMemory: Manages dialog history for agents."""
 
     history: tp.List[tp.Dict[str, str]] = []
 
     def add_message(self, role: str, content: str) -> None:
         """
-        Add a message to the conversation history.
+        Adds a message to the conversation history.
 
         Args:
             role: Message role (e.g., "user", "assistant").
             content: Message content.
+
+        Does Not: Persist to storage—use StateManager.
         """
         self.history.append({"role": role, "content": content})
 
-class EntityMemory(BaseModel):
-    """Manages extracted entities (people, places, facts)."""
-
-    entities: tp.Dict[str, tp.Any] = {}
-
-    def add_entity(self, key: str, value: tp.Any) -> None:
+    def get_context(self) -> str:
         """
-        Add an extracted entity to memory.
+        Returns formatted conversation context for LLM.
+
+        Returns:
+            String of concatenated messages.
+
+        Does Not: Include entities—use EntityMemory.
+        """
+        return "\n".join(f"{msg['role']}: {msg['content']}" for msg in self.history)
+
+class EntityMemory(BaseModel):
+    """EntityMemory: Extracts and stores key entities from conversations."""
+
+    entities: tp.Dict[str, str] = {}
+
+    def extract_entities(self, text: str, model: str) -> None:
+        """
+        Extracts entities using LLM via litellm.
 
         Args:
-            key: Entity identifier (e.g., "user_name").
-            value: Entity value.
+            text: Input text to analyze.
+            model: LLM model string (e.g., "openai/gpt-4o").
+
+        Does Not: Persist entities—use StateManager.
         """
-        self.entities[key] = value
+        prompt = f"Extract key entities (e.g., people, places, facts) from: {text}"
+        response = litellm.completion(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200
+        )
+        # Inline: Simplified entity parsing for Phase 1
+        entities = response.choices[0].message.content.split(", ")
+        for entity in entities:
+            self.entities[entity] = entity
 
 class StateManager:
-    """Handles persistence, checkpointing, and loading of state."""
+    """StateManager: Handles state persistence and checkpointing (Item 15)."""
 
     def __init__(self, storage_path: str = "state.json"):
         """
-        Initialize the state manager.
+        Initialize StateManager with a storage path.
 
         Args:
-            storage_path: Path for JSON state persistence.
-        """
-        self.storage_path = storage_path
-        self.conversation = ConversationMemory()
-        self.entities = EntityMemory()
+            storage_path: Path for JSON state storage.
 
-    async def checkpoint(self, state: State) -> None:
+        Does Not: Handle cross-session loading—expanded in Phase 2.
         """
-        Persist the current state to storage.
+        self.storage_path = Path(storage_path)
+        self.conversation_memory = ConversationMemory()
+        self.entity_memory = EntityMemory()
+
+    def save_state(self, state: State) -> None:
+        """
+        Saves state to JSON file.
 
         Args:
-            state: State object to persist.
+            state: State instance to persist.
+
+        Does Not: Handle database storage—Phase 2.
         """
-        with open(self.storage_path, "w") as f:
+        with self.storage_path.open("w") as f:
             json.dump(state.dict(), f)
 
-    async def load(self) -> State:
+    def load_state(self) -> State:
         """
-        Load state from storage.
+        Loads state from JSON file.
 
         Returns:
-            State: Loaded state object.
+            State instance or new State if file doesn't exist.
+
+        Does Not: Handle errors—caller must validate.
         """
-        try:
-            with open(self.storage_path, "r") as f:
+        if self.storage_path.exists():
+            with self.storage_path.open("r") as f:
                 return State(**json.load(f))
-        except FileNotFoundError:
-            return State()
+        return State()
+
+    def update_conversation(self, role: str, content: str) -> None:
+        """
+        Updates conversation memory.
+
+        Args:
+            role: Message role.
+            content: Message content.
+        """
+        self.conversation_memory.add_message(role, content)
+
+    def extract_entities(self, text: str, model: str) -> None:
+        """
+        Extracts entities using EntityMemory.
+
+        Args:
+            text: Input text.
+            model: LLM model string.
+        """
+        self.entity_memory.extract_entities(text, model)
+
+__all__ = ["StateManager", "ConversationMemory", "EntityMemory"]

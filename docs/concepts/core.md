@@ -1,22 +1,24 @@
-# Core Abstractions
+# Core Concepts
 
-The core module (`python/lola/core/`) provides foundational abstractions for LOLA OS.
+This section explains the core components of LOLA OS.
 
-## Components
-- **BaseAgent (`agent.py`)**: Abstract base class for all agents, defining the `run` interface.
-- **StateGraph (`graph.py`)**: Manages agent workflows with nodes and edges.
-- **State (`state.py`)**: Pydantic model for agent state, ensuring type safety.
-- **StateManager (`memory.py`)**: Persists state across sessions.
+## BaseAgent
 
-## Usage
-```python
-from lola.core.agent import BaseAgent
-from lola.core.state import State
+The `BaseAgent` class (`lola.agents.base`) is the foundation for all agents. It integrates with `litellm` for LLM calls and supports tool execution.
 
-class CustomAgent(BaseAgent):
-    async def run(self, query: str) -> State:
-        return State(data={"result": f"Processed: {query}"})
-```
+## StateGraph
 
-## Why?
-These abstractions enable modular, extensible agent development, per Choice by Design.
+The `StateGraph` (`lola.core.graph`) orchestrates agent workflows using a directed acyclic graph (DAG). Nodes represent tasks, and edges define transitions.
+
+## Tools
+
+Tools (`lola.tools`) like `WebSearchTool` and `ContractCallTool` enable agents to interact with external systems (web, EVM).
+
+## RAG
+
+Retrieval-Augmented Generation (`lola.rag`) uses Pinecone and LlamaIndex for enhanced query processing.
+
+## Next Steps
+
+- Build a ReAct agent: [Build Your First Agent](../tutorials/build_your_first_agent.md)
+- Create on-chain tools: [Building On-Chain Tools](../tutorials/building_onchain_tools.md)

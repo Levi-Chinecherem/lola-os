@@ -1,39 +1,47 @@
 # Standard imports
 import typing as tp
 
-# Third-party
-from web3 import Web3
-
 # Local
 from .connection import ChainConnection
 
 """
-File: Defines the Oracles for LOLA OS TMVP 1 Phase 2.
+File: Defines the Oracles class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a unified interface for fetching oracle data.
-How: Uses web3.py to query oracle contracts.
+Purpose: Provides interface for fetching oracle data.
+How: Uses web3.py to call oracle contracts.
 Why: Enables off-chain data access, per EVM-Native tenet.
 Full Path: lola-os/python/lola/chains/oracles.py
+Future Optimization: Migrate to Rust for fast oracle queries (post-TMVP 1).
 """
+
 class Oracles:
-    """Oracles: Fetches data from oracle contracts. Does NOT handle writes—TMVP 2."""
+    """Oracles: Fetches data from oracle contracts."""
 
-    def __init__(self, connection: ChainConnection):
+    def __init__(self, rpc_url: str):
         """
-        Initialize with a ChainConnection instance.
+        Initialize with RPC URL.
 
         Args:
-            connection: ChainConnection instance.
+            rpc_url: EVM RPC URL.
         """
-        self.connection = connection
+        self.connection = ChainConnection(rpc_url)
 
-    def fetch_data(self, oracle_id: str) -> dict:
+    async def fetch(self, oracle_address: str, function_name: str, args: tp.List[tp.Any]) -> tp.Any:
         """
-        Fetch data from an oracle.
+        Fetches oracle data.
 
         Args:
-            oracle_id: Identifier of the oracle.
+            oracle_address: Oracle contract address.
+            function_name: Function to call.
+            args: Function arguments.
+
         Returns:
-            dict: Oracle data (stubbed for now).
+            Oracle data.
+
+        Does Not: Handle custom oracles—expand in TMVP 2.
         """
-        return {"data": f"Stubbed oracle data for {oracle_id}"}
+        abi = [{"inputs": [], "name": function_name, "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}]  # Example ABI
+        contract = Contract(self.connection, oracle_address, abi)
+        return await contract.call_function(function_name, args)
+
+__all__ = ["Oracles"]

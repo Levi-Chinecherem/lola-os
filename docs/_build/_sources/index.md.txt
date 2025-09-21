@@ -1,0 +1,35 @@
+# LOLA OS Documentation
+
+Welcome to the official documentation for **LOLA OS** (Layered Orchestration for Logic and Automation), an open-source Python framework for building Ethereum Virtual Machine (EVM)-native AI agents. This documentation covers the TMVP 1 release (v1.0.0), providing a mocked prototype with core abstractions, agent templates, tools, CLI, examples, and more.
+
+## Getting Started
+
+Start with the [Quickstart Guide](quickstart.md) to install LOLA OS and run your first agent.
+
+## Table of Contents
+
+```toc
+:maxdepth: 2
+
+quickstart
+concepts/core
+tutorials/build_your_first_agent
+tutorials/building_onchain_tools
+```
+
+## Overview
+
+LOLA OS enables developers to create AI agents with EVM-native capabilities, adhering to principles of Developer Sovereignty, EVM-Native, Radical Reliability, Choice by Design, and Explicit over Implicit. Key features include:
+
+- **Core Abstractions**: Modular agent, graph, state, and memory management.
+- **Agent Templates**: ReAct, PlanExecute, and Collaborative agents.
+- **Tools**: Web search, EVM contract calls, human-in-the-loop, and more.
+- **Examples**: [Research Agent](examples/research_agent/README.md) and [Onchain Analyst](examples/onchain_analyst/README.md).
+
+## Contributing
+
+Contributions are welcome! See the [Contributing Guide](contributing.md) for details on how to get involved.
+
+## License
+
+MIT License

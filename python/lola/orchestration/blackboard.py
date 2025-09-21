@@ -1,40 +1,58 @@
 # Standard imports
 import typing as tp
+import threading
 
 # Local
 from lola.core.state import State
+from lola.utils.logging import logger
 
 """
-File: Defines the BlackboardSystem for LOLA OS TMVP 1 Phase 2.
+File: Defines the BlackboardSystem class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a shared knowledge space for agents.
-How: Uses State to manage shared data.
-Why: Enables collaborative data sharing, per Choice by Design.
+Purpose: Provides shared knowledge space for agents.
+How: Uses thread-safe dict for shared state.
+Why: Enables collaborative knowledge, per Choice by Design tenet.
 Full Path: lola-os/python/lola/orchestration/blackboard.py
+Future Optimization: Migrate to Rust for distributed blackboard (post-TMVP 1).
 """
+
 class BlackboardSystem:
-    """BlackboardSystem: Manages shared agent knowledge. Does NOT persist state—use StateManager."""
+    """BlackboardSystem: Shared knowledge space for agents. Does NOT persist data—use StateManager."""
 
     def __init__(self):
-        """Initialize an empty blackboard."""
-        self.blackboard = State()
-
-    def update(self, data: dict) -> None:
         """
-        Update the blackboard with data.
+        Initialize blackboard.
+        """
+        self.blackboard = {}
+        self.lock = threading.Lock()
+        logger.info("Initialized BlackboardSystem.")
+
+    def write(self, key: str, value: tp.Any) -> None:
+        """
+        Writes to blackboard.
 
         Args:
-            data: Data to add to the blackboard.
+            key: Key name.
+            value: Value to write.
+
+        Does Not: Validate value—caller must ensure.
         """
-        self.blackboard.update(data)
+        with self.lock:
+            self.blackboard[key] = value
 
     def read(self, key: str) -> tp.Any:
         """
-        Read data from the blackboard.
+        Reads from blackboard.
 
         Args:
-            key: Data key to retrieve.
+            key: Key name.
+
         Returns:
-            Any: Data value (stubbed for now).
+            Value or None.
+
+        Does Not: Handle missing keys—caller must check.
         """
-        return self.blackboard.data.get(key, "stubbed_data")
+        with self.lock:
+            return self.blackboard.get(key)
+
+__all__ = ["BlackboardSystem"]

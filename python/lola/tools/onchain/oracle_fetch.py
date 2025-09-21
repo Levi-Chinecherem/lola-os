@@ -1,41 +1,51 @@
 # Standard imports
 import typing as tp
 
+# Third-party
+from web3 import Web3
+
 # Local
-from ...chains.oracles import Oracles
 from ..base import BaseTool
+from lola.chains.oracles import Oracles
 
 """
-File: Defines the OracleFetchTool for LOLA OS TMVP 1 Phase 2.
+File: Defines the OracleFetchTool class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Provides a tool for fetching data from oracles.
-How: Uses web3.py to query oracle contracts via Oracles module.
-Why: Enables agents to access off-chain data, per EVM-Native tenet.
+Purpose: Enables agents to fetch data from on-chain oracles.
+How: Uses web3.py to call oracle contracts.
+Why: Supports off-chain data access, per EVM-Native tenet.
 Full Path: lola-os/python/lola/tools/onchain/oracle_fetch.py
+Future Optimization: Migrate to Rust for fast oracle queries (post-TMVP 1).
 """
+
 class OracleFetchTool(BaseTool):
-    """OracleFetchTool: Fetches oracle data. Does NOT handle writes—TMVP 2."""
+    """OracleFetchTool: Fetches data from oracles. Does NOT persist data—use StateManager."""
 
     name: str = "oracle_fetch"
 
-    def __init__(self, oracles: Oracles):
+    def __init__(self, rpc_url: str):
         """
-        Initialize with an Oracles instance.
+        Initialize with RPC URL.
 
         Args:
-            oracles: Oracles object for data fetching.
+            rpc_url: EVM RPC URL.
         """
-        self.oracles = oracles
+        self.oracles = Oracles(rpc_url)
 
-    def execute(self, *args, **kwargs) -> dict:
+    async def execute(self, input_data: tp.Any) -> tp.Any:
         """
-        Fetch data from an oracle.
+        Fetch oracle data.
 
         Args:
-            *args: Oracle query as first positional argument.
-            **kwargs: Optional parameters (e.g., oracle_id).
+            input_data: Dict with 'oracle_type' and 'params'.
+
         Returns:
-            dict: Oracle data (stubbed for now).
+            Oracle data.
+
+        Does Not: Handle custom oracles—use chains/oracles.py.
         """
-        query = args[0] if args else kwargs.get("query", "")
-        return {"results": f"Stubbed oracle fetch for: {query}"}
+        if not isinstance(input_data, dict) or 'oracle_type' not in input_data:
+            raise ValueError("Input data must be dict with 'oracle_type' and 'params'.")
+        return await self.oracles.fetch(input_data['oracle_type'], input_data.get('params', {}))
+
+__all__ = ["OracleFetchTool"]

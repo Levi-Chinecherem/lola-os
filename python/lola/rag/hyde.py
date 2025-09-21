@@ -5,32 +5,40 @@ import typing as tp
 from lola.agnostic.unified import UnifiedModelManager
 
 """
-File: Defines the HyDEGenerator for LOLA OS TMVP 1 Phase 2.
+File: Defines the HyDEGenerator class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Generates hypothetical documents to improve retrieval.
-How: Uses LLM to create documents via UnifiedModelManager.
-Why: Enhances RAG performance, per Developer Sovereignty.
+Purpose: Improves RAG retrieval with hypothetical documents.
+How: Uses LLM to generate hypothetical answers for embedding.
+Why: Enhances search accuracy, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/rag/hyde.py
+Future Optimization: Migrate to Rust for fast generation (post-TMVP 1).
 """
+
 class HyDEGenerator:
-    """HyDEGenerator: Generates hypothetical documents. Does NOT handle retrieval—use MultiModalRetriever."""
+    """HyDEGenerator: Generates hypothetical documents for RAG. Does NOT persist data—use StateManager."""
 
     def __init__(self, model_manager: UnifiedModelManager):
         """
-        Initialize with a model manager.
+        Initialize with model manager.
 
         Args:
-            model_manager: UnifiedModelManager for LLM calls.
+            model_manager: UnifiedModelManager instance.
         """
         self.model_manager = model_manager
 
-    async def generate(self, query: str) -> dict:
+    async def generate(self, query: str) -> str:
         """
-        Generate a hypothetical document.
+        Generates a hypothetical document.
 
         Args:
-            query: Query string.
+            query: Input query.
+
         Returns:
-            dict: Hypothetical document (stubbed for now).
+            Hypothetical document string.
+
+        Does Not: Embed—use multimodal.py.
         """
-        return {"document": f"Stubbed HyDE document for: {query}"}
+        prompt = f"Generate a hypothetical ideal document for query: {query}"
+        return await self.model_manager.call(prompt)
+
+__all__ = ["HyDEGenerator"]

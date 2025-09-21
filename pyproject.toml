@@ -1,8 +1,9 @@
 [tool.poetry]
 name = "lola-os"
 version = "1.0.0"
-description = "LOLA OS TMVP 1: Open-source framework for AI agents"
+description = "Open-source Python framework for EVM-native AI agents"
 authors = ["Levi Chinecherem Chidi <lchinecherem2018@gmail.com>"]
+license = "MIT"
 readme = "README.md"
 packages = [{include = "lola", from = "python"}]
 
@@ -14,19 +15,36 @@ web3 = "^6.0"
 websockets = "^13.0"
 click = "^8.1"
 pyyaml = "^6.0"
-sphinx = "^7.0"  # For documentation
-sphinx-rtd-theme = "^2.0"  # Read the Docs theme
+sphinx = "^7.0"
+sphinx-rtd-theme = "^2.0"
+myst-parser = "^3.0"
+tenacity = "^8.0"
+pinecone-client = "^3.0"
+langchain = "^0.3"
+llama-index = "^0.11"
+redis = "^5.0"
+pandas = "^2.0"
+requests = "^2.0"
+cryptography = "^43.0"
+scikit-learn = "^1.0"
+graphviz = "^0.20"
+opentelemetry-api = "^1.27"
+opentelemetry-exporter-otlp = "^1.27"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 pytest-asyncio = "^0.24.0"
+pytest-mock = "^3.12.0"
+pytest-cov = "^5.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "--cov=lola --cov-report=html --cov-report=term-missing --cov-fail-under=80"
+testpaths = ["tests"]
 markers = [
     "asyncio: mark test as async to run with pytest-asyncio",
 ]
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -1,43 +1,54 @@
 # Standard imports
+from pathlib import Path
 import os
-from typing import Dict, Any
 import yaml
+from typing import Dict, Any
 
-# Local
+# Local imports
 from lola.utils.logging import logger
 
 """
-File: Configuration loader for LOLA OS TMVP 1 Phase 3.
+File: Configuration management for LOLA OS TMVP 1 Phase 3.
 
-Purpose: Loads configuration from YAML files or environment variables.
-How: Parses YAML or env vars with precedence for litellm keys.
-Why: Simplifies configuration management, per Developer Sovereignty.
+Purpose: Loads configuration from YAML files and environment variables.
+How: Uses pyyaml for YAML parsing, os for env vars.
+Why: Centralizes configuration for flexibility, per Developer Sovereignty.
 Full Path: lola-os/python/lola/utils/config.py
 """
 
-def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
+config: Dict[str, Any] = {}
+
+def load_config(config_path: Path) -> Dict[str, Any]:
     """
-    Load configuration from YAML or environment variables.
+    Load configuration from a YAML file and override with environment variables.
 
     Args:
-        config_path: Path to YAML config file (defaults to config.yaml).
-    Returns:
-        Dict with configuration values.
-    Does Not: Validate config—use Pydantic in calling code.
-    """
-    config = {}
+        config_path: Path to the YAML configuration file.
 
-    # Load from YAML if exists
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = yaml.safe_load(f) or {}
-        except Exception as e:
-            logger.error(f"Failed to load config from {config_path}: {e}")
+    Returns:
+        Dict of configuration settings.
+
+    Does not:
+        Modify the config file; only reads it.
+    """
+    global config
+    try:
+        with config_path.open("r") as f:
+            config = yaml.safe_load(f) or {}
+    except Exception as e:
+        logger.error(f"Failed to load config from {config_path}: {e}")
+        raise
 
     # Override with environment variables
-    for key in ["MODEL", "API_KEY"]:
-        if env_value := os.environ.get(f"LOLA_{key}"):
-            config[key.lower()] = env_value
+    env_vars = {
+        "PINECONE_API_KEY": os.getenv("PINECONE_API_KEY"),
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+        "WEB3_PROVIDER_URI": os.getenv("WEB3_PROVIDER_URI"),
+        "REDIS_URL": os.getenv("REDIS_URL"),
+    }
+    for key, value in env_vars.items():
+        if value:
+            config[key.lower()] = value
 
+    logger.info(f"Loaded configuration from {config_path}")
     return config

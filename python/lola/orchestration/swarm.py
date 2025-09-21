@@ -3,36 +3,56 @@ import typing as tp
 import asyncio
 
 # Local
-from lola.agents.base import BaseAgent
+from lola.agents.base import BaseTemplateAgent
 from lola.core.state import State
+from lola.utils.logging import logger
 
 """
-File: Defines the AgentSwarmOrchestrator for LOLA OS TMVP 1 Phase 2.
+File: Defines the AgentSwarmOrchestrator class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Manages a swarm of agents for dynamic task allocation.
-How: Uses asyncio to coordinate multiple agents via State.
-Why: Enables scalable multi-agent systems, per Choice by Design.
+Purpose: Orchestrates a swarm of agents for distributed tasks.
+How: Uses asyncio to run agents concurrently, merges results into shared state.
+Why: Enables scalable multi-agent systems, per Choice by Design tenet.
 Full Path: lola-os/python/lola/orchestration/swarm.py
+Future Optimization: Migrate to Rust for true parallelism (post-TMVP 1).
 """
-class AgentSwarmOrchestrator:
-    """AgentSwarmOrchestrator: Coordinates a swarm of agents. Does NOT persist state—use StateManager."""
 
-    def __init__(self, agents: tp.List[BaseAgent]):
+class AgentSwarmOrchestrator:
+    """AgentSwarmOrchestrator: Manages swarm of agents for collaborative execution. Does NOT persist state—use StateManager."""
+
+    def __init__(self, agents: tp.List[BaseTemplateAgent]):
         """
         Initialize with a list of agents.
 
         Args:
-            agents: List of BaseAgent instances.
+            agents: List of BaseTemplateAgent instances.
+
+        Does Not: Validate agents—caller must ensure compatibility.
         """
         self.agents = agents
+        logger.info(f"Initialized AgentSwarmOrchestrator with {len(agents)} agents.")
 
-    async def orchestrate(self, query: str) -> dict:
+    async def run(self, query: str) -> State:
         """
-        Orchestrate tasks among agents.
+        Runs the swarm on a query, merging results.
 
         Args:
-            query: Task query string.
+            query: Input query for all agents.
+
         Returns:
-            dict: Orchestration results (stubbed for now).
+            Merged State from all agents.
+
+        Does Not: Handle agent failures—use guardrails/prompt_shield.py.
         """
-        return {"results": f"Stubbed swarm orchestration for: {query}"}
+        tasks = [agent.run(query) for agent in self.agents]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        merged_state = State()
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Agent failed: {result}")
+            else:
+                merged_state.history.extend(result.history)
+                merged_state.output = result.output  # Last agent's output overrides; improve in TMVP 2
+        return merged_state
+
+__all__ = ["AgentSwarmOrchestrator"]

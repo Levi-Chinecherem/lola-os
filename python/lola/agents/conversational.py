@@ -1,23 +1,24 @@
 # Standard imports
 import typing as tp
-from abc import ABC, abstractmethod
 
 # Local
-from .base import BaseAgent
+from .base import BaseTemplateAgent
 from lola.core.state import State
-from lola.core.graph import StateGraph, Node
+from lola.core.memory import ConversationMemory
 from lola.tools.base import BaseTool
 
 """
-File: Defines the ConversationalAgent for LOLA OS TMVP 1 Phase 2.
+File: Defines the ConversationalAgent class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Implements a chatbot-style conversational agent.
-How: Uses StateGraph to manage dialog flows with LLM.
-Why: Enables interactive user experiences, per Developer Sovereignty.
+Purpose: Implements a conversational agent for interactive dialogs.
+How: Uses ConversationMemory to maintain history and LLM for responses.
+Why: Enables natural user interactions, per Developer Sovereignty tenet.
 Full Path: lola-os/python/lola/agents/conversational.py
+Future Optimization: Migrate to Rust for high-throughput conversations (post-TMVP 1).
 """
-class ConversationalAgent(BaseAgent):
-    """ConversationalAgent: Handles dialog flows. Does NOT persist state—use StateManager."""
+
+class ConversationalAgent(BaseTemplateAgent):
+    """ConversationalAgent: Implements interactive conversation pattern. Does NOT persist state—use StateManager."""
 
     def __init__(self, tools: tp.List[BaseTool], model: str = "openai/gpt-4o"):
         """
@@ -28,24 +29,26 @@ class ConversationalAgent(BaseAgent):
             model: LLM model string for litellm.
         """
         super().__init__(tools, model)
-        self.graph = StateGraph(self.state)
-        self.graph.add_node(Node(id="converse", type="llm", function=self._converse, description="Conversation step"))
+        self.conversation_memory = ConversationMemory()
 
     async def run(self, query: str) -> State:
         """
-        Run a conversational cycle on the query.
+        Respond to a query in conversation.
 
         Args:
             query: User input string.
         Returns:
-            State: Updated state with conversation results.
-        Does Not: Persist state—caller must use StateManager.
+            State: Updated state with response.
+        Does Not: Handle entity extraction—use memory/entity.py.
         """
         self.state.update({"query": query})
-        return await self.graph.execute()
-
-    async def _converse(self, state: State) -> dict:
-        """Handle conversation using LLM."""
-        prompt = f"Respond conversationally to: {state.data.get('query')}"
+        # Inline: Add query to conversation memory
+        self.conversation_memory.add_message("user", query)
+        # Inline: Generate response with LLM
+        prompt = f"Respond to conversation: {self.conversation_memory.get_context()}"
         response = await self._call_llm(prompt)
-        return {"response": response}
+        self.conversation_memory.add_message("assistant", response)
+        self.state.update({"output": response})
+        return self.state
+
+__all__ = ["ConversationalAgent"]

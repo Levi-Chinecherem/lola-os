@@ -6,8 +6,9 @@ How: Defines package-level exports for developer imports.
 Why: Centralizes access to core components, per Minimalist Empowerment tenet.
 Full Path: lola-os/python/lola/core/__init__.py
 """
+
 from .agent import BaseAgent
-from .graph import StateGraph, Node, Edge
+from .graph import StateGraph, Node, Edge, DynamicGraphBuilder
 from .state import State
 from .memory import StateManager, ConversationMemory, EntityMemory
 
@@ -16,6 +17,7 @@ __all__ = [
     "StateGraph",
     "Node",
     "Edge",
+    "DynamicGraphBuilder",
     "State",
     "StateManager",
     "ConversationMemory",

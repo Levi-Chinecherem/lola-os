@@ -2,35 +2,49 @@
 import typing as tp
 
 # Local
+from lola.core.state import State
 from lola.tools.human_input import HumanInputTool
 
 """
-File: Defines the EscalationHandler for LOLA OS TMVP 1 Phase 2.
+File: Defines the EscalationHandler class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Detects confusion and escalates to humans.
-How: Uses HumanInputTool to request clarification.
-Why: Ensures robust workflows, per Radical Reliability.
+Purpose: Escalates low-confidence tasks to humans.
+How: Checks confidence and prompts for input.
+Why: Improves reliability in uncertain cases, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/hitl/escalation.py
+Future Optimization: Migrate to Rust for fast escalation (post-TMVP 1).
 """
+
 class EscalationHandler:
-    """EscalationHandler: Manages escalations to humans. Does NOT persist state—use StateManager."""
+    """EscalationHandler: Handles task escalation to humans. Does NOT persist escalations—use StateManager."""
 
-    def __init__(self, human_input_tool: HumanInputTool):
+    def __init__(self, confidence_threshold: float = 0.8):
         """
-        Initialize with a human input tool.
+        Initialize with confidence threshold.
 
         Args:
-            human_input_tool: HumanInputTool instance.
+            confidence_threshold: Threshold for escalation.
         """
-        self.human_input_tool = human_input_tool
+        self.threshold = confidence_threshold
+        self.input_tool = HumanInputTool()
 
-    async def escalate(self, issue: str) -> dict:
+    async def escalate(self, state: State, confidence: float) -> State:
         """
-        Escalate an issue to a human.
+        Escalates if confidence is low.
 
         Args:
-            issue: Issue description.
+            state: Current state.
+            confidence: Agent confidence score.
+
         Returns:
-            dict: Escalation result (stubbed for now).
+            Updated state with human input if escalated.
+
+        Does Not: Generate confidence—use evals/evaluator.py.
         """
-        return self.human_input_tool.execute(f"Escalate: {issue}")
+        if confidence < self.threshold:
+            prompt = f"Escalate: Low confidence ({confidence}) on {state.query}. Provide guidance."
+            guidance = await self.input_tool.execute(prompt)
+            state.update(output=guidance)
+        return state
+
+__all__ = ["EscalationHandler"]

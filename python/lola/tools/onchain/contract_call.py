@@ -1,66 +1,54 @@
 # Standard imports
-from typing import Any, Dict, Optional
-import json
+import typing as tp
 
-# Third-party imports
+# Third-party
 from web3 import Web3
-from web3.types import Address
 
-# Local imports
-from lola.tools.base import BaseTool
-from lola.utils.logging import logger
+# Local
+from ..base import BaseTool
+from lola.chains.contract import Contract
 
 """
-File: Contract call tool for EVM read operations in LOLA OS TMVP 1.
+File: Defines the ContractCallTool class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Enables read-only contract calls on EVM chains.
-How: Uses web3.py to interact with smart contracts via provided Web3 instance.
-Why: Supports EVM-native agent capabilities, per EVM-Native tenet.
+Purpose: Enables agents to call EVM contracts.
+How: Uses web3.py for real contract calls.
+Why: Supports on-chain interactions, per EVM-Native tenet.
 Full Path: lola-os/python/lola/tools/onchain/contract_call.py
+Future Optimization: Migrate to Rust for low-latency calls (post-TMVP 1).
 """
 
 class ContractCallTool(BaseTool):
-    """Tool for executing read-only EVM contract calls."""
+    """ContractCallTool: Calls EVM contracts. Does NOT persist results—use StateManager."""
 
-    def __init__(self, web3: Web3, contract_address: Optional[str] = None, abi: Optional[str] = None):
+    name: str = "contract_call"
+
+    def __init__(self, rpc_url: str, address: str, abi: tp.List[dict]):
         """
-        Initialize the contract call tool.
+        Initialize with RPC URL, address, and ABI.
 
         Args:
-            web3: Web3 instance for EVM interaction.
-            contract_address: Optional contract address (hex string).
-            abi: Optional contract ABI (JSON string).
+            rpc_url: EVM RPC URL.
+            address: Contract address.
+            abi: Contract ABI.
         """
-        super().__init__()
-        self.web3 = web3
-        self.contract_address = contract_address
-        self.abi = json.loads(abi) if abi else None
-        self.contract = None
-        if contract_address and abi and self.web3.is_connected():
-            self.contract = self.web3.eth.contract(address=contract_address, abi=self.abi)
-        logger.info(f"Initialized ContractCallTool with contract: {contract_address}")
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        self.contract = Contract(w3, address, abi)
 
-    async def execute(self, function_name: str, args: Dict[str, Any] = None) -> Any:
+    async def execute(self, input_data: tp.Any) -> tp.Any:
         """
-        Execute a read-only contract call.
+        Call a contract function.
 
         Args:
-            function_name: Name of the contract function to call.
-            args: Optional arguments for the function.
+            input_data: Dict with 'function' and 'args'.
 
         Returns:
-            Result of the contract call.
+            Call result.
 
-        Does Not: Perform write operations—TMVP 1 is read-only.
+        Does Not: Handle transactions—read-only.
         """
-        if not self.contract:
-            logger.error("Contract not initialized")
-            raise ValueError("Contract not initialized")
-        try:
-            func = getattr(self.contract.functions, function_name)
-            result = func(**(args or {})).call()
-            logger.debug(f"Contract call {function_name} result: {result}")
-            return result
-        except Exception as e:
-            logger.error(f"Contract call failed: {str(e)}")
-            raise
+        if not isinstance(input_data, dict) or 'function' not in input_data:
+            raise ValueError("Input data must be dict with 'function' and 'args'.")
+        return await self.contract.call_function(input_data['function'], input_data.get('args', []))
+
+__all__ = ["ContractCallTool"]

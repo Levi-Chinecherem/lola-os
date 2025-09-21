@@ -2,46 +2,52 @@
 import typing as tp
 
 # Third-party
-import litellm
+from litellm import completion
 
 """
-File: Defines the ModelFallbackBalancer for LOLA OS TMVP 1.
+File: Defines the ModelFallbackBalancer class for LOLA OS TMVP 1 Phase 2.
 
-Purpose: Handles automatic retries and fallback for LLM calls.
-How: Uses litellm's fallback mechanism for failed requests.
-Why: Ensures robust LLM interactions, per Radical Reliability.
+Purpose: Provides fallback for LLM calls.
+How: Tries models in sequence using litellm.
+Why: Ensures reliability, per Radical Reliability tenet.
 Full Path: lola-os/python/lola/agnostic/fallback.py
-Future Optimization: Migrate to Rust for high-throughput load balancing (post-TMVP 1).
+Future Optimization: Migrate to Rust for load balancing (post-TMVP 1).
 """
 
 class ModelFallbackBalancer:
-    """Manages fallback and load balancing for LLM calls."""
+    """ModelFallbackBalancer: Balances LLM calls with fallback. Does NOT persist logs—use StateManager."""
 
     def __init__(self, models: tp.List[str]):
         """
-        Initialize with a list of fallback models.
+        Initialize with fallback models.
 
         Args:
             models: List of model strings (e.g., ["openai/gpt-4o", "anthropic/claude-3-sonnet"]).
         """
         self.models = models
 
-    async def complete(self, prompt: str) -> str:
+    async def call(self, prompt: str) -> str:
         """
-        Execute an LLM completion with fallback.
+        Calls LLM with fallback.
 
         Args:
-            prompt: Input prompt string.
+            prompt: Input prompt.
+
         Returns:
-            str: LLM response from successful model.
+            Response string.
+
+        Does Not: Optimize cost—use cost.py.
         """
         for model in self.models:
             try:
-                response = await litellm.acompletion(
+                response = completion(
                     model=model,
-                    messages=[{"role": "user", "content": prompt}]
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=1000
                 )
                 return response.choices[0].message.content
-            except Exception:
+            except Exception as e:
                 continue
-        raise RuntimeError("All fallback models failed")
+        raise ValueError("All fallback models failed.")
+
+__all__ = ["ModelFallbackBalancer"]
